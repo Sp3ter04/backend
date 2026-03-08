@@ -25,7 +25,7 @@ class ExerciseResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'Exercícios';
 
-    protected static ?string $navigationLabel = 'Exercícios';
+    protected static ?string $navigationLabel = 'Lista de Exercícios';
 
     protected static ?string $modelLabel = 'Exercício';
 
