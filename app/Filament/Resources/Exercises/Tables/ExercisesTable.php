@@ -72,56 +72,47 @@ class ExercisesTable
                     ->icon('heroicon-o-speaker-wave')
                     ->color('info')
                     ->action(function ($record, $livewire) {
-                        $audioUrl = $record->audio_url_1;
+                        $audioUrl = null;
                         
-                        // Se tem URL mas ficheiro não existe ou não há URL, tenta gerar
-                        if (empty($audioUrl) || !Storage::disk('public')->exists($audioUrl)) {
-                            try {
-                                // Se tem URL mas ficheiro não existe, extrai o nome do ficheiro
-                                $filenamePrefix = null;
-                                if ($audioUrl) {
-                                    $filename = basename($audioUrl);
-                                    $filenamePrefix = str_replace('.mp3', '', $filename);
+                        // 1. Primeiro, verifica se já tem audio_url_1 válido em sentences/
+                        if (!empty($record->audio_url_1) && 
+                            str_contains($record->audio_url_1, 'audio/sentences/') &&
+                            Storage::disk('public')->exists($record->audio_url_1)) {
+                            $audioUrl = $record->audio_url_1;
+                        }
+                        
+                        // 2. Se não tem, tenta encontrar o arquivo baseado no número do exercício
+                        if (!$audioUrl && $record->number) {
+                            $possiblePaths = [
+                                "audio/sentences/exercise-{$record->number}.mp3",
+                                "audio/sentences/{$record->number}.mp3",
+                                "audio/sentences/sentence-{$record->number}.mp3",
+                            ];
+                            
+                            foreach ($possiblePaths as $path) {
+                                if (Storage::disk('public')->exists($path)) {
+                                    $audioUrl = $path;
+                                    // Atualiza o registro com o caminho correto
+                                    $record->update(['audio_url_1' => $audioUrl]);
+                                    break;
                                 }
+                            }
+                        }
+                        
+                        // 3. Se ainda não encontrou, tenta gerar novo áudio
+                        if (!$audioUrl) {
+                            try {
+                                $filenamePrefix = $record->number ? "exercise-{$record->number}" : "exercise-{$record->id}";
                                 
                                 $audioUrl = AudioService::generateAndSave(
                                     $record->sentence,
                                     'pt-PT',
                                     'sentences',
-                                    $filenamePrefix ?? 'exercise-' . $record->id
+                                    $filenamePrefix
                                 );
                                 
                                 if ($audioUrl) {
                                     $record->update(['audio_url_1' => $audioUrl]);
-                                }
-                                
-                                // Gerar áudio para as palavras também
-                                $words = $record->words()->get();
-                                foreach ($words as $word) {
-                                    // Se tem URL mas ficheiro não existe ou não há URL
-                                    if (empty($word->audio_url) || !Storage::disk('public')->exists($word->audio_url)) {
-                                        try {
-                                            // Se tem URL mas ficheiro não existe, extrai o nome do ficheiro
-                                            $wordFilenamePrefix = null;
-                                            if ($word->audio_url) {
-                                                $filename = basename($word->audio_url);
-                                                $wordFilenamePrefix = str_replace('.mp3', '', $filename);
-                                            }
-                                            
-                                            $wordAudioUrl = AudioService::generateAndSave(
-                                                $word->word,
-                                                'pt-PT',
-                                                'words',
-                                                $wordFilenamePrefix
-                                            );
-                                            
-                                            if ($wordAudioUrl) {
-                                                $word->update(['audio_url' => $wordAudioUrl]);
-                                            }
-                                        } catch (\Exception $e) {
-                                            Log::warning('Erro ao gerar áudio da palavra ' . $word->word . ': ' . $e->getMessage());
-                                        }
-                                    }
                                 }
                             } catch (\Exception $e) {
                                 Log::error('Erro ao gerar áudio: ' . $e->getMessage());
@@ -129,7 +120,7 @@ class ExercisesTable
                         }
                         
                         // Reproduz o áudio se houver
-                        if ($audioUrl) {
+                        if ($audioUrl && Storage::disk('public')->exists($audioUrl)) {
                             $url = Storage::disk('public')->url($audioUrl);
                             $url = str_replace("'", "\\'", $url);
                             $sentence = str_replace("'", "\\'", $record->sentence);
