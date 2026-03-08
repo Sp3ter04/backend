@@ -24,7 +24,7 @@ class ProfissionalStudentResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'id';
 
-    protected static ?string $navigationLabel = 'Profissional-Aluno';
+    protected static ?string $navigationLabel = 'Profissional-Alunos';
 
     protected static ?string $modelLabel = 'Relação Profissional-Aluno';
 
