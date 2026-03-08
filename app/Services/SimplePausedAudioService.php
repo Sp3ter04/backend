@@ -96,13 +96,15 @@ class SimplePausedAudioService
      * @param string $lang Language code (default: pt-PT)
      * @param bool $insertPauses Whether to insert commas for pauses
      * @param float|null $speed Audio speed multiplier (default: 0.9)
+     * @param int|null $exerciseNumber Exercise number for filename
      * @return string|null Path to generated audio file
      */
     public function generateSentenceAudio(
         string $sentence,
         string $lang = 'pt-PT',
         bool $insertPauses = true,
-        ?float $speed = null
+        ?float $speed = null,
+        ?int $exerciseNumber = null
     ): ?string {
         $sentence = trim($sentence);
         if (empty($sentence)) {
@@ -118,7 +120,7 @@ class SimplePausedAudioService
         }
         
         // Generate filename based on original sentence
-        $filename = $this->generateFilename($originalSentence, $insertPauses, $speed);
+        $filename = $this->generateFilename($originalSentence, $insertPauses, $speed, $exerciseNumber);
         $finalPath = "audio/sentences/{$filename}";
         
         // Check if already exists
@@ -271,11 +273,19 @@ class SimplePausedAudioService
      * @param string $sentence Original sentence
      * @param bool $withPauses Whether pauses were inserted
      * @param float $speed Speed multiplier
+     * @param int|null $exerciseNumber Exercise number
      * @return string Filename
      */
-    protected function generateFilename(string $sentence, bool $withPauses, float $speed): string
+    protected function generateFilename(string $sentence, bool $withPauses, float $speed, ?int $exerciseNumber = null): string
     {
-        $slug = Str::slug(substr($sentence, 0, 50));
+        $slug = Str::slug(substr($sentence, 0, 40));
+        
+        // If exercise number provided, use format: exercise-{number}-{slug}.mp3
+        if ($exerciseNumber !== null) {
+            return "exercise-{$exerciseNumber}-{$slug}.mp3";
+        }
+        
+        // Legacy format for backwards compatibility
         $pauseFlag = $withPauses ? 'paused' : 'normal';
         $speedStr = str_replace('.', '', (string)$speed);
         $hash = substr(md5($sentence . $pauseFlag . $speed), 0, 8);
@@ -317,11 +327,12 @@ class SimplePausedAudioService
      * @param string $sentence Sentence to check
      * @param bool $insertPauses Pause setting
      * @param float $speed Speed setting
+     * @param int|null $exerciseNumber Exercise number
      * @return bool
      */
-    public function audioExists(string $sentence, bool $insertPauses = true, float $speed = 0.9): bool
+    public function audioExists(string $sentence, bool $insertPauses = true, float $speed = 0.9, ?int $exerciseNumber = null): bool
     {
-        $filename = $this->generateFilename($sentence, $insertPauses, $speed);
+        $filename = $this->generateFilename($sentence, $insertPauses, $speed, $exerciseNumber);
         return Storage::disk('public')->exists("audio/sentences/{$filename}");
     }
 }

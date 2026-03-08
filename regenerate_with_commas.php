@@ -121,10 +121,10 @@ foreach ($exercises as $index => $exercise) {
     $sentence = $exercise->sentence;
     $shortSentence = substr($sentence, 0, 50) . (strlen($sentence) > 50 ? '...' : '');
     
-    echo "[{$num}/{$total}] Processing: {$shortSentence}\n";
+    echo "[{$num}/{$total}] Exercise #{$exercise->number}: {$shortSentence}\n";
     
     // Check if already exists (unless force)
-    if (!$config['force'] && $audioService->audioExists($sentence, $config['insertPauses'], $config['speed'])) {
+    if (!$config['force'] && $audioService->audioExists($sentence, $config['insertPauses'], $config['speed'], $exercise->number)) {
         echo "         ⏭️  Skipped (already exists)\n";
         $stats['skipped']++;
         continue;
@@ -135,7 +135,8 @@ foreach ($exercises as $index => $exercise) {
         $sentence,
         $config['lang'],
         $config['insertPauses'],
-        $config['speed']
+        $config['speed'],
+        $exercise->number
     );
     
     if ($audioPath) {

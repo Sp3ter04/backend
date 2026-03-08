@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Exercises\Tables;
 
 use App\Enums\DictationDifficulty;
 use App\Services\AudioService;
+use App\Services\SimplePausedAudioService;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -83,7 +84,9 @@ class ExercisesTable
                         
                         // 2. Se não tem, tenta encontrar o arquivo baseado no número do exercício
                         if (!$audioUrl && $record->number) {
+                            $slug = \Illuminate\Support\Str::slug(substr($record->sentence, 0, 40));
                             $possiblePaths = [
+                                "audio/sentences/exercise-{$record->number}-{$slug}.mp3",
                                 "audio/sentences/exercise-{$record->number}.mp3",
                                 "audio/sentences/{$record->number}.mp3",
                                 "audio/sentences/sentence-{$record->number}.mp3",
@@ -99,16 +102,17 @@ class ExercisesTable
                             }
                         }
                         
-                        // 3. Se ainda não encontrou, tenta gerar novo áudio
+                        // 3. Se ainda não encontrou, tenta gerar novo áudio no formato correto
                         if (!$audioUrl) {
                             try {
-                                $filenamePrefix = $record->number ? "exercise-{$record->number}" : "exercise-{$record->id}";
-                                
-                                $audioUrl = AudioService::generateAndSave(
+                                // Usar SimplePausedAudioService (novo formato com pausas)
+                                $pausedService = new SimplePausedAudioService();
+                                $audioUrl = $pausedService->generateSentenceAudio(
                                     $record->sentence,
                                     'pt-PT',
-                                    'sentences',
-                                    $filenamePrefix
+                                    true,
+                                    0.9,
+                                    $record->number
                                 );
                                 
                                 if ($audioUrl) {
