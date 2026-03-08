@@ -229,10 +229,21 @@ class SimplePausedAudioService
      */
     protected function processAudioSpeed(string $audioData, float $speed): ?string
     {
-        $ffmpegPath = trim(\shell_exec('which ffmpeg') ?? '');
+        // Check if shell_exec is available (it's often disabled on shared hosting)
+        if (!\function_exists('shell_exec')) {
+            Log::info('shell_exec is disabled on this server, skipping FFmpeg processing');
+            return $audioData;
+        }
         
-        if (empty($ffmpegPath)) {
-            Log::warning('FFmpeg not found, returning original audio');
+        try {
+            $ffmpegPath = \trim(\shell_exec('which ffmpeg') ?? '');
+            
+            if (empty($ffmpegPath)) {
+                Log::warning('FFmpeg not found, returning original audio');
+                return $audioData;
+            }
+        } catch (\Exception $e) {
+            Log::warning('Cannot check for FFmpeg: ' . $e->getMessage());
             return $audioData;
         }
         
@@ -260,21 +271,28 @@ class SimplePausedAudioService
                 \escapeshellarg($outputFile)
             );
             
+            // Check if exec is available
+            if (!\function_exists('exec')) {
+                Log::warning('exec() is disabled on this server, cannot process audio with FFmpeg');
+                @\unlink($inputFile);
+                return $audioData;
+            }
+            
             \exec($cmd, $output, $returnCode);
             
-            if ($returnCode === 0 && file_exists($outputFile)) {
-                $processedData = file_get_contents($outputFile);
+            if ($returnCode === 0 && \file_exists($outputFile)) {
+                $processedData = \file_get_contents($outputFile);
                 
                 // Cleanup
-                @unlink($inputFile);
-                @unlink($outputFile);
+                @\unlink($inputFile);
+                @\unlink($outputFile);
                 
                 return $processedData;
             }
             
             // Cleanup on failure
-            @unlink($inputFile);
-            @unlink($outputFile);
+            @\unlink($inputFile);
+            @\unlink($outputFile);
             
             Log::warning('FFmpeg processing failed, returning original audio');
             return $audioData;
