@@ -6207,7 +6207,7 @@
                 "composer/class-map-generator": "^1.6"
             },
             "suggest": {
-                "composer/class-map-generator": "Improved tab completion performance with better class discovery.",
+                "composer/class-map-generator": "Improved tab completion performance with better class dyscovery.",
                 "ext-pcntl": "Enabling the PCNTL extension makes PsySH a lot happier :)",
                 "ext-posix": "If you have PCNTL, you'll want the POSIX extension as well."
             },

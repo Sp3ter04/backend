@@ -65,7 +65,7 @@ class DictationMetric extends SupabaseModel
      */
     public function student(): BelongsTo
     {
-        return $this->belongsTo(Student::class, 'student_id');
+        return $this->belongsTo(User::class, 'student_id');
     }
 
     /**
@@ -74,6 +74,26 @@ class DictationMetric extends SupabaseModel
     public function exercise(): BelongsTo
     {
         return $this->belongsTo(Exercise::class, 'exercise_id');
+    }
+
+    /**
+     * Get the words with errors (resolved from error_words IDs).
+     */
+    public function errorWordModels()
+    {
+        if (!is_array($this->error_words) || empty($this->error_words)) {
+            return collect();
+        }
+        
+        return Word::whereIn('id', $this->error_words)->get();
+    }
+
+    /**
+     * Get error words as text strings.
+     */
+    public function getErrorWordsTextAttribute(): array
+    {
+        return $this->errorWordModels()->pluck('word')->toArray();
     }
 
 }
