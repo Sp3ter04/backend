@@ -17,11 +17,10 @@ class AlunoController extends Controller
 
     public function store(Request $request)
     {
-        dd(env('SUPABASE_SERVICE_ROLE'));
         $response = Http::withHeaders([
-            'apikey' => env('SUPABASE_SERVICE_ROLE'),
-            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE'),
-        ])->post(env('SUPABASE_URL') . '/rest/v1/alunos', [
+            'apikey' => config('services.supabase.secret_key'),
+            'Content-Type' => 'application/json',
+        ])->post(config('services.supabase.url') . '/rest/v1/alunos', [
             'id' => $request->user_id,
             'nome' => $request->nome,
             'escola_instituicao' => $request->escola_instituicao,

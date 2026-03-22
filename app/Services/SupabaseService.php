@@ -13,8 +13,8 @@ class SupabaseService
     public function __construct()
     {
         $this->url = config('services.supabase.url');
-        $this->anonKey = config('services.supabase.anon_key');
-        $this->serviceRoleKey = config('services.supabase.service_role_key');
+        $this->anonKey = config('services.supabase.public_key');
+        $this->serviceRoleKey = config('services.supabase.secret_key');
     }
 
     /**
@@ -35,7 +35,6 @@ class SupabaseService
 
         $response = Http::withHeaders([
             'apikey' => $this->serviceRoleKey,
-            'Authorization' => "Bearer {$this->serviceRoleKey}",
         ])->get($url, $query);
 
         if ($response->successful()) {
@@ -54,7 +53,6 @@ class SupabaseService
         
         $response = Http::withHeaders([
             'apikey' => $this->serviceRoleKey,
-            'Authorization' => "Bearer {$this->serviceRoleKey}",
         ])->get($url, [
             'id' => "eq.{$id}",
             'select' => '*',
@@ -77,7 +75,6 @@ class SupabaseService
         
         $response = Http::withHeaders([
             'apikey' => $this->serviceRoleKey,
-            'Authorization' => "Bearer {$this->serviceRoleKey}",
             'Content-Type' => 'application/json',
             'Prefer' => 'return=representation',
         ])->post($url, $data);
@@ -95,14 +92,14 @@ class SupabaseService
     public function updateExercise(string $id, array $data): bool
     {
         $url = "{$this->url}/rest/v1/exercises";
+        $query = http_build_query([
+            'id' => "eq.{$id}",
+        ]);
         
         $response = Http::withHeaders([
             'apikey' => $this->serviceRoleKey,
-            'Authorization' => "Bearer {$this->serviceRoleKey}",
             'Content-Type' => 'application/json',
-        ])->patch($url, $data, [
-            'id' => "eq.{$id}",
-        ]);
+        ])->patch("{$url}?{$query}", $data);
 
         return $response->successful();
     }
@@ -116,7 +113,6 @@ class SupabaseService
         
         $response = Http::withHeaders([
             'apikey' => $this->serviceRoleKey,
-            'Authorization' => "Bearer {$this->serviceRoleKey}",
         ])->delete($url, [
             'id' => "eq.{$id}",
         ]);

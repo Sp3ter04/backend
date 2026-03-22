@@ -14,8 +14,9 @@ class SyncSupabaseAll extends Command
 
     protected array $tables = [
         'users' => [
-            'id', 'name', 'email', 'email_verified_at', 'password', 
-            'remember_token', 'created_at', 'updated_at'
+            'id', 'auth_id', 'name', 'email', 'email_verified_at',
+            'remember_token', 'created_at', 'updated_at', 'role',
+            'school_id', 'school_year'
         ],
         'schools' => [
             'id', 'name', 'address', 'city', 'postal_code', 

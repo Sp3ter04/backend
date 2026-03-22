@@ -69,15 +69,7 @@
         </div>
     </div>
 
-    <script type="module">
-        import { createClient } from 'https://esm.sh/@supabase/supabase-js';
-
-        const supabase = createClient(
-            '{{ config('services.supabase.url') }}',
-            '{{ config('services.supabase.anon_key') }}',
-            { auth: { persistSession: true } }
-        );
-
+    <script>
         async function login() {
             const btn = document.getElementById('login-btn');
             const errorDiv = document.getElementById('error-message');
@@ -86,21 +78,6 @@
             btn.textContent = 'A entrar...';
 
             try {
-                // 1. Autenticar no Supabase
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: document.getElementById('email').value,
-                    password: document.getElementById('password').value
-                });
-
-                if (error) {
-                    errorDiv.textContent = error.message;
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-
-                const token = data.session.access_token;
-
-                // 2. Enviar token ao Laravel para fazer login na sessão
                 const response = await fetch('{{ route('login.submit') }}', {
                     method: 'POST',
                     headers: {
@@ -108,7 +85,10 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ token: token })
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value,
+                    })
                 });
 
                 const result = await response.json();
@@ -119,7 +99,6 @@
                     return;
                 }
 
-                // 3. Redirecionar para o dashboard
                 window.location.href = result.redirect || '/dashboard';
 
             } catch (err) {

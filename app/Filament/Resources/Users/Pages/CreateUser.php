@@ -23,8 +23,7 @@ class CreateUser extends CreateRecord
 
         // Criar utilizador no Supabase Auth
         $response = Http::withHeaders([
-            'apikey' => config('services.supabase.anon_key'),
-            'Authorization' => 'Bearer ' . config('services.supabase.service_role'),
+            'apikey' => config('services.supabase.secret_key'),
             'Content-Type' => 'application/json',
         ])->post(config('services.supabase.url') . '/auth/v1/admin/users', [
             'email' => $data['email'],
@@ -45,6 +44,7 @@ class CreateUser extends CreateRecord
 
         // Usar o UUID do Supabase como ID do utilizador local
         $data['id'] = $supabaseUser['id'];
+        $data['auth_id'] = $supabaseUser['id'];
         
         // Remover password antes de guardar na base de dados local
         unset($data['password']);

@@ -32,9 +32,10 @@ class SupabaseGuard implements Guard, StatefulGuard
         // Recuperar da sessão Laravel
         $userData = session('supabase_auth_user');
         $token = session('supabase_token');
+        $localUser = session('supabase_local_user', []);
 
         if ($userData) {
-            $this->user = new SupabaseUser((object) $userData, $token);
+            $this->user = new SupabaseUser((object) $userData, $token, $localUser);
         }
 
         return $this->user;
@@ -59,6 +60,7 @@ class SupabaseGuard implements Guard, StatefulGuard
             session([
                 'supabase_auth_user' => $user->getClaims(),
                 'supabase_token' => $user->getToken(),
+                'supabase_local_user' => $user->getLocalUser(),
             ]);
         }
     }
@@ -72,6 +74,7 @@ class SupabaseGuard implements Guard, StatefulGuard
 
         session()->forget('supabase_auth_user');
         session()->forget('supabase_token');
+        session()->forget('supabase_local_user');
         session()->forget('supabase_user');
         session()->invalidate();
         session()->regenerateToken();

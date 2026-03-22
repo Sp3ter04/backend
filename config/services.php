@@ -37,8 +37,17 @@ return [
 
     'supabase' => [
         'url' => env('SUPABASE_URL'),
-        'anon_key' => env('SUPABASE_ANON_KEY'),
-        'service_role' => env('SUPABASE_SERVICE_ROLE'),
+        'public_key' => env(
+            'SUPABASE_PUBLISHABLE_KEY',
+            env(
+                'SUPABASE_PUBLIC_KEY',
+                env('SUPABASE_ANON_KEY', env('SUPABASE_SECRET_KEY', env('SUPABASE_SERVICE_ROLE', env('SUPABASE_SERVICE_KEY'))))
+            )
+        ),
+        'secret_key' => env('SUPABASE_SECRET_KEY', env('SUPABASE_SERVICE_ROLE', env('SUPABASE_SERVICE_KEY'))),
+        'anon_key' => env('SUPABASE_PUBLISHABLE_KEY', env('SUPABASE_PUBLIC_KEY', env('SUPABASE_ANON_KEY'))),
+        'service_role' => env('SUPABASE_SECRET_KEY', env('SUPABASE_SERVICE_ROLE', env('SUPABASE_SERVICE_KEY'))),
+        'service_role_key' => env('SUPABASE_SECRET_KEY', env('SUPABASE_SERVICE_ROLE', env('SUPABASE_SERVICE_KEY'))),
     ],
 
 ];

@@ -8,6 +8,22 @@ use Illuminate\Support\Facades\Validator;
 
 class SupabaseUserController extends Controller
 {
+    protected function publicHeaders(array $headers = []): array
+    {
+        return array_merge([
+            'apikey' => config('services.supabase.public_key'),
+            'Content-Type' => 'application/json',
+        ], $headers);
+    }
+
+    protected function secretHeaders(array $headers = []): array
+    {
+        return array_merge([
+            'apikey' => config('services.supabase.secret_key'),
+            'Content-Type' => 'application/json',
+        ], $headers);
+    }
+
     public function create(Request $request)
     {
         // Validar os dados de entrada
@@ -30,11 +46,7 @@ class SupabaseUserController extends Controller
         }
 
         // 1. Criar utilizador no Supabase Auth
-        $response = Http::withHeaders([
-            'apikey' => config('services.supabase.anon_key'),
-            'Authorization' => 'Bearer ' . config('services.supabase.anon_key'),
-            'Content-Type' => 'application/json',
-        ])->post(config('services.supabase.url') . '/auth/v1/signup', [
+        $response = Http::withHeaders($this->publicHeaders())->post(config('services.supabase.url') . '/auth/v1/signup', [
             'email' => $request->email,
             'password' => $request->password,
             'data' => [
@@ -63,12 +75,9 @@ class SupabaseUserController extends Controller
 
         // 2. Inserir dados na tabela users
         if ($userId) {
-            $userResponse = Http::withHeaders([
-                'apikey' => config('services.supabase.anon_key'),
-                'Authorization' => 'Bearer ' . config('services.supabase.service_role'),
-                'Content-Type' => 'application/json',
+            $userResponse = Http::withHeaders($this->secretHeaders([
                 'Prefer' => 'return=representation',
-            ])->post(config('services.supabase.url') . '/rest/v1/users', [
+            ]))->post(config('services.supabase.url') . '/rest/v1/users', [
                 'id' => $userId,
                 'nome' => $request->nome,
                 'email' => $request->email,
@@ -135,11 +144,10 @@ class SupabaseUserController extends Controller
         // Teste 2: Testar autenticação admin
         if ($url && $serviceRole) {
             try {
-                $response = Http::withHeaders([
+                $response = Http::withHeaders($this->secretHeaders([
                     'apikey' => $serviceRole,
-                    'Authorization' => 'Bearer ' . $serviceRole,
                     'Content-Type' => 'application/json',
-                ])->timeout(10)->get($url . '/auth/v1/admin/users?page=1&per_page=1');
+                ]))->timeout(10)->get($url . '/auth/v1/admin/users?page=1&per_page=1');
                 
                 $status['tests']['admin_auth'] = $response->successful() 
                     ? '✅ Autenticação admin funcional' 
@@ -166,11 +174,7 @@ class SupabaseUserController extends Controller
 
         // Teste 1: Endpoint público com confirmação desabilitada
         try {
-            $response1 = Http::withHeaders([
-                'apikey' => env('SUPABASE_ANON_KEY'),
-                'Authorization' => 'Bearer ' . env('SUPABASE_ANON_KEY'),
-                'Content-Type' => 'application/json',
-            ])->post(env('SUPABASE_URL') . '/auth/v1/signup', [
+            $response1 = Http::withHeaders($this->publicHeaders())->post(env('SUPABASE_URL') . '/auth/v1/signup', [
                 'email' => $testEmail,
                 'password' => $testPassword,
                 'options' => [
@@ -196,11 +200,7 @@ class SupabaseUserController extends Controller
 
         // Teste 2: Endpoint admin (fallback)
         try {
-            $response2 = Http::withHeaders([
-                'apikey' => env('SUPABASE_SERVICE_ROLE'),
-                'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE'),
-                'Content-Type' => 'application/json',
-            ])->post(env('SUPABASE_URL') . '/auth/v1/admin/users', [
+            $response2 = Http::withHeaders($this->secretHeaders())->post(env('SUPABASE_URL') . '/auth/v1/admin/users', [
                 'email' => $testEmail . '.admin',
                 'password' => $testPassword,
                 'email_confirm' => true,
@@ -224,10 +224,7 @@ class SupabaseUserController extends Controller
 
         // Teste 3: Verificar configurações de Auth
         try {
-            $response3 = Http::withHeaders([
-                'apikey' => env('SUPABASE_SERVICE_ROLE'),
-                'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE'),
-            ])->get(env('SUPABASE_URL') . '/auth/v1/settings');
+            $response3 = Http::withHeaders($this->secretHeaders())->get(env('SUPABASE_URL') . '/auth/v1/settings');
 
             $results['test_3'] = [
                 'method' => 'GET /auth/v1/settings',

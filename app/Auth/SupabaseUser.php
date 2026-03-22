@@ -15,8 +15,9 @@ class SupabaseUser implements Authenticatable, FilamentUser
     protected array $appMetadata;
     protected ?string $token;
     protected array $claims;
+    protected array $localUser;
 
-    public function __construct(object $jwtPayload, ?string $token = null)
+    public function __construct(object $jwtPayload, ?string $token = null, array $localUser = [])
     {
         $this->id = $jwtPayload->sub ?? '';
         $this->email = $jwtPayload->email ?? '';
@@ -25,6 +26,7 @@ class SupabaseUser implements Authenticatable, FilamentUser
         $this->appMetadata = (array) ($jwtPayload->app_metadata ?? []);
         $this->token = $token;
         $this->claims = (array) $jwtPayload;
+        $this->localUser = $localUser;
     }
 
     // --- Authenticatable interface ---
@@ -73,27 +75,29 @@ class SupabaseUser implements Authenticatable, FilamentUser
 
     public function getEmail(): string
     {
-        return $this->email;
+        return $this->localUser['email'] ?? $this->email;
     }
 
     public function getRole(): string
     {
-        return $this->role;
+        return $this->localUser['role'] ?? $this->role;
     }
 
     public function getNome(): string
     {
-        return $this->userMetadata['nome'] ?? $this->userMetadata['name'] ?? '';
+        return $this->localUser['name'] ?? $this->userMetadata['nome'] ?? $this->userMetadata['name'] ?? '';
     }
 
     public function getEscolaInstituicao(): string
     {
-        return $this->userMetadata['escola_instituicao'] ?? '';
+        return $this->localUser['school_name'] ?? $this->userMetadata['escola_instituicao'] ?? '';
     }
 
     public function getAnoEscolaridade(): ?int
     {
-        return $this->userMetadata['ano_escolaridade'] ?? null;
+        return isset($this->localUser['school_year'])
+            ? (int) $this->localUser['school_year']
+            : $this->userMetadata['ano_escolaridade'] ?? null;
     }
 
     public function getUserMetadata(): array
@@ -116,13 +120,17 @@ class SupabaseUser implements Authenticatable, FilamentUser
         return $this->claims;
     }
 
+    public function getLocalUser(): array
+    {
+        return $this->localUser;
+    }
+
     /**
      * Filament: verificar se o utilizador pode aceder ao painel.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        // Todos os utilizadores autenticados podem aceder
-        return true;
+        return filled($this->localUser['id'] ?? null);
     }
 
     /**
@@ -139,15 +147,18 @@ class SupabaseUser implements Authenticatable, FilamentUser
     {
         return match ($key) {
             'id' => $this->id,
-            'email' => $this->email,
-            'role' => $this->role,
+            'email' => $this->getEmail(),
+            'role' => $this->getRole(),
             'nome' => $this->getNome(),
             'name' => $this->getNome(),
             'escola_instituicao' => $this->getEscolaInstituicao(),
             'ano_escolaridade' => $this->getAnoEscolaridade(),
+            'school_id' => $this->localUser['school_id'] ?? null,
+            'school_name' => $this->localUser['school_name'] ?? null,
+            'school_year' => $this->localUser['school_year'] ?? null,
             'token' => $this->token,
             'avatar_url' => null,
-            default => $this->userMetadata[$key] ?? $this->claims[$key] ?? null,
+            default => $this->localUser[$key] ?? $this->userMetadata[$key] ?? $this->claims[$key] ?? null,
         };
     }
 
@@ -180,12 +191,15 @@ class SupabaseUser implements Authenticatable, FilamentUser
     {
         return [
             'id' => $this->id,
-            'email' => $this->email,
-            'role' => $this->role,
+            'email' => $this->getEmail(),
+            'role' => $this->getRole(),
             'nome' => $this->getNome(),
             'name' => $this->getNome(),
             'escola_instituicao' => $this->getEscolaInstituicao(),
             'ano_escolaridade' => $this->getAnoEscolaridade(),
+            'school_id' => $this->localUser['school_id'] ?? null,
+            'school_name' => $this->localUser['school_name'] ?? null,
+            'school_year' => $this->localUser['school_year'] ?? null,
         ];
     }
 }

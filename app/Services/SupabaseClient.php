@@ -12,8 +12,8 @@ class SupabaseClient
 
     public function __construct()
     {
-        $this->url = env('NEXT_PUBLIC_SUPABASE_URL');
-        $this->anonKey = env('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+        $this->url = config('services.supabase.url');
+        $this->anonKey = config('services.supabase.public_key');
     }
 
     /**
@@ -170,7 +170,6 @@ class SupabaseQueryBuilder
         try {
             $response = Http::withHeaders([
                 'apikey' => $this->anonKey,
-                'Authorization' => "Bearer {$this->anonKey}",
             ])->get($url, $params);
 
             if ($response->successful()) {
@@ -205,7 +204,6 @@ class SupabaseQueryBuilder
         try {
             $response = Http::withHeaders([
                 'apikey' => $this->anonKey,
-                'Authorization' => "Bearer {$this->anonKey}",
                 'Content-Type' => 'application/json',
                 'Prefer' => 'return=representation',
             ])->post($url, $data);
@@ -249,7 +247,6 @@ class SupabaseQueryBuilder
         try {
             $response = Http::withHeaders([
                 'apikey' => $this->anonKey,
-                'Authorization' => "Bearer {$this->anonKey}",
                 'Content-Type' => 'application/json',
                 'Prefer' => 'return=representation',
             ])->patch($url . '?' . http_build_query($params), $data);
@@ -281,7 +278,6 @@ class SupabaseQueryBuilder
         try {
             $response = Http::withHeaders([
                 'apikey' => $this->anonKey,
-                'Authorization' => "Bearer {$this->anonKey}",
             ])->delete($url, $params);
 
             return $response->successful();
