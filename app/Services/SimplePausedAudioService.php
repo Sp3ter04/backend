@@ -124,6 +124,30 @@ class SimplePausedAudioService
         ?float $speed = null,
         ?int $exerciseNumber = null
     ): ?string {
+        $result = $this->generateSentenceAudioWithTimestamps(
+            $sentence,
+            $lang,
+            $insertPauses,
+            $speed,
+            $exerciseNumber
+        );
+
+        return $result['path'] ?? null;
+    }
+
+    /**
+     * Generate sentence audio and token timestamps.
+     *
+     * @return array{path:string,word_timestamps:array|null}|null
+     */
+    public function generateSentenceAudioWithTimestamps(
+        string $sentence,
+        string $lang = 'pt-PT',
+        bool $insertPauses = true,
+        ?float $speed = null,
+        ?int $exerciseNumber = null,
+        bool $forceRegenerate = false
+    ): ?array {
         $sentence = \trim($sentence);
         if (empty($sentence)) {
             return null;
@@ -142,22 +166,42 @@ class SimplePausedAudioService
         $finalPath = "audio/sentences/{$filename}";
         
         // Check if already exists
-        if (Storage::disk('public')->exists($finalPath)) {
-            return $finalPath;
+        if (!$forceRegenerate && Storage::disk('public')->exists($finalPath)) {
+            $timestamps = app(GoogleTtsTimestampService::class)->buildFallbackTimestamps($sentence);
+
+            return [
+                'path' => $finalPath,
+                'word_timestamps' => $timestamps,
+            ];
         }
         
         try {
-            // Fetch TTS audio from Google Translate
-            $audioData = $this->fetchGoogleTTS($sentence, $lang);
+            $timestamps = null;
+
+            // Prefer Google Cloud TTS with SSML marks to capture timestamps.
+            $ttsResult = app(GoogleTtsTimestampService::class)->synthesizeWithTimestamps(
+                $sentence,
+                $lang,
+                $speed,
+                'FEMALE'
+            );
+
+            $audioData = $ttsResult['audioContent'] ?? null;
+            $timestamps = $ttsResult['timestamps'] ?? null;
+
+            // Fallback to legacy Google Translate flow if needed.
+            if (!$audioData) {
+                $audioData = $this->fetchGoogleTTS($sentence, $lang);
+                $timestamps = app(GoogleTtsTimestampService::class)->buildFallbackTimestamps($sentence);
+
+                if ($audioData && $speed !== 1.0) {
+                    $audioData = $this->processAudioSpeed($audioData, $speed);
+                }
+            }
             
             if (!$audioData) {
                 Log::warning("Failed to fetch TTS for: {$originalSentence}");
                 return null;
-            }
-            
-            // If speed is not default, process with FFmpeg
-            if ($speed !== 1.0) {
-                $audioData = $this->processAudioSpeed($audioData, $speed);
             }
             
             if (!$audioData) {
@@ -172,7 +216,10 @@ class SimplePausedAudioService
             
             Storage::disk('public')->put($finalPath, $audioData);
             
-            return $finalPath;
+            return [
+                'path' => $finalPath,
+                'word_timestamps' => $timestamps,
+            ];
             
         } catch (\Exception $e) {
             Log::error('Error generating audio: ' . $e->getMessage());

@@ -20,6 +20,23 @@ class AudioService
      */
     public static function generateAndSave(string $text, string $lang = 'pt-PT', string $folder = 'words', ?string $filenamePrefix = null): ?string
     {
+        $result = self::generateAndSaveWithTimestamps($text, $lang, $folder, $filenamePrefix);
+
+        return $result['path'] ?? null;
+    }
+
+    /**
+     * Generate and store audio while returning token timestamps.
+     *
+     * @return array{path:string,word_timestamps:array|null}|null
+     */
+    public static function generateAndSaveWithTimestamps(
+        string $text,
+        string $lang = 'pt-PT',
+        string $folder = 'words',
+        ?string $filenamePrefix = null,
+        float $speakingRate = 0.9
+    ): ?array {
         $text = trim($text);
         if (empty($text)) {
             return null;
@@ -34,16 +51,41 @@ class AudioService
 
         // Se já existe, retornar o caminho
         if (Storage::disk('public')->exists($path)) {
-            return $path;
+            $timestamps = app(GoogleTtsTimestampService::class)->buildFallbackTimestamps($text);
+
+            return [
+                'path' => $path,
+                'word_timestamps' => $timestamps,
+            ];
         }
 
-        // Tentar múltiplas fontes TTS
-        $audioData = self::tryGoogleTranslateTTS($text, $lang)
-            ?? self::trySoundOfTextTTS($text, $lang);
+        $timestamps = null;
+
+        // Preferir Google Cloud TTS com SSML marks para obter timestamps.
+        $ttsResult = app(GoogleTtsTimestampService::class)->synthesizeWithTimestamps(
+            $text,
+            $lang,
+            $speakingRate,
+            'FEMALE'
+        );
+
+        $audioData = $ttsResult['audioContent'] ?? null;
+        $timestamps = $ttsResult['timestamps'] ?? null;
+
+        if (!$audioData) {
+            // Fallback para fluxo antigo, sem quebrar geração de áudio.
+            $audioData = self::tryGoogleTranslateTTS($text, $lang)
+                ?? self::trySoundOfTextTTS($text, $lang);
+            $timestamps = app(GoogleTtsTimestampService::class)->buildFallbackTimestamps($text);
+        }
 
         if ($audioData && strlen($audioData) > 100) {
             Storage::disk('public')->put($path, $audioData);
-            return $path;
+
+            return [
+                'path' => $path,
+                'word_timestamps' => $timestamps,
+            ];
         }
 
         return null;

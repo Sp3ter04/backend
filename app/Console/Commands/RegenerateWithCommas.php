@@ -65,18 +65,26 @@ class RegenerateWithCommas extends Command
             $progressBar->setMessage("Processing: " . substr($sentence, 0, 40) . '...');
 
             // Check if already exists (unless force)
-            if (!$force && $audioService->audioExists($sentence, true, $speed)) {
+            if (!$force && $audioService->audioExists($sentence, true, $speed, $exercise->number)) {
                 $stats['skipped']++;
                 $progressBar->advance();
                 continue;
             }
 
-            // Generate audio
-            $audioPath = $audioService->generateSentenceAudio($sentence, $lang, true, $speed);
+            // Generate audio + timestamps
+            $audioResult = $audioService->generateSentenceAudioWithTimestamps(
+                $sentence,
+                $lang,
+                true,
+                $speed,
+                $exercise->number,
+                $force
+            );
 
-            if ($audioPath) {
+            if ($audioResult && !empty($audioResult['path'])) {
                 // Update exercise with new audio path
-                $exercise->audio_url_1 = $audioPath;
+                $exercise->audio_url_1 = $audioResult['path'];
+                $exercise->word_timestamps = $audioResult['word_timestamps'];
                 $exercise->save();
                 $stats['success']++;
             } else {

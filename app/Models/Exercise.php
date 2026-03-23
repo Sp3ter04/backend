@@ -21,6 +21,7 @@ class Exercise extends SupabaseModel
     protected $fillable = [
         'sentence',
         'words_json',
+        'word_timestamps',
         'difficulty',
         'content',
         'number',
@@ -38,6 +39,7 @@ class Exercise extends SupabaseModel
             'id' => 'string',
             'difficulty' => DictationDifficulty::class,
             'words_json' => 'array',
+            'word_timestamps' => 'array',
         ];
     }
 

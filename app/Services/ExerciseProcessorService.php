@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\Log;
 class ExerciseProcessorService
 {
     protected PortugueseSyllableSplitter $splitter;
+    protected WordContextTimestampService $wordContextTimestampService;
 
     public function __construct()
     {
         $this->splitter = new PortugueseSyllableSplitter();
+        $this->wordContextTimestampService = app(WordContextTimestampService::class);
     }
 
     /**
@@ -91,6 +93,9 @@ class ExerciseProcessorService
         // Gerar áudio para a frase completa (fora da transaction para não bloquear)
         $this->generateSentenceAudio($exercise);
 
+        // Propagar timestamps em contexto da frase para words.word_timestamps.
+        $this->syncWordContextTimestamps($exercise);
+
         // Gerar áudio para cada palavra individual
         $this->generateWordsAudio($exercise);
     }
@@ -140,16 +145,22 @@ class ExerciseProcessorService
                 return;
             }
 
-            // Gerar áudio da frase (audio_url_1)
-            $audioPath = AudioService::generateAndSave(
+            $audioService = app(SimplePausedAudioService::class);
+
+            // Gerar áudio da frase (audio_url_1) e timestamps com SSML marks.
+            $result = $audioService->generateSentenceAudioWithTimestamps(
                 $sentence,
                 'pt-PT',
-                'sentences',
-                'exercise-' . $exercise->id
+                true,
+                0.9,
+                $exercise->number
             );
 
-            if ($audioPath) {
-                $exercise->update(['audio_url_1' => $audioPath]);
+            if ($result && !empty($result['path'])) {
+                $exercise->update([
+                    'audio_url_1' => $result['path'],
+                    'word_timestamps' => $result['word_timestamps'],
+                ]);
             }
         } catch (\Exception $e) {
             Log::warning('Falha ao gerar áudio da frase do exercício ' . $exercise->id . ': ' . $e->getMessage());
@@ -165,7 +176,7 @@ class ExerciseProcessorService
             $words = $exercise->words()->get();
 
             foreach ($words as $word) {
-                // Saltar se a palavra já tem áudio
+                // Apenas garantir audio_url da palavra; timestamps vêm do contexto da frase.
                 if (!empty($word->audio_url)) {
                     continue;
                 }
@@ -177,11 +188,22 @@ class ExerciseProcessorService
                 );
 
                 if ($audioPath) {
-                    $word->update(['audio_url' => $audioPath]);
+                    $word->update([
+                        'audio_url' => $audioPath,
+                    ]);
                 }
             }
         } catch (\Exception $e) {
             Log::warning('Falha ao gerar áudio das palavras do exercício ' . $exercise->id . ': ' . $e->getMessage());
+        }
+    }
+
+    protected function syncWordContextTimestamps(Exercise $exercise): void
+    {
+        try {
+            $this->wordContextTimestampService->syncFromExercise($exercise->fresh());
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao sincronizar timestamps em contexto para exercício ' . $exercise->id . ': ' . $e->getMessage());
         }
     }
 

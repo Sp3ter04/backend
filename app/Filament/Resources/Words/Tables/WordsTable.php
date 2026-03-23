@@ -27,6 +27,31 @@ class WordsTable
                 TextColumn::make('difficulty')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('word_timestamps')
+                    ->label('Timing')
+                    ->formatStateUsing(function ($state): string {
+                        if (!is_array($state)) {
+                            return 'Sem timing';
+                        }
+
+                        $contexts = $state['in_context'] ?? null;
+                        if (!is_array($contexts) || count($contexts) === 0) {
+                            return 'Sem timing';
+                        }
+
+                        return count($contexts) . ' contexto(s)';
+                    })
+                    ->badge()
+                    ->color(function ($state): string {
+                        if (!is_array($state)) {
+                            return 'gray';
+                        }
+
+                        $contexts = $state['in_context'] ?? null;
+
+                        return is_array($contexts) && count($contexts) > 0 ? 'success' : 'gray';
+                    })
+                    ->sortable(false),
             ])
             ->filters([
                 //

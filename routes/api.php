@@ -19,3 +19,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::apiResource('exercises', ExerciseController::class)
     ->whereUuid('exercise');
+
+Route::post('regenerate-all-audio', [ExerciseController::class, 'regenerateAllAudio']);

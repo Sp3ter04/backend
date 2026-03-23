@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\DictationDifficulty;
 use App\Models\Exercise;
 use App\Services\ExerciseProcessorService;
+use App\Services\SimplePausedAudioService;
+use App\Services\WordContextTimestampService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -70,6 +72,7 @@ class ExerciseController extends Controller
                     'content' => $exercise->content,
                     'created_by' => $exercise->created_by,
                     'words_json' => $exercise->words_json,
+                    'word_timestamps' => $exercise->word_timestamps,
                     'audio_url_1' => $exercise->audio_url_1,
                     'audio_url_2' => $exercise->audio_url_2,
                 ]
@@ -108,6 +111,7 @@ class ExerciseController extends Controller
                 'content' => $exercise->content,
                 'sentence' => $exercise->sentence,
                 'words_json' => $exercise->words_json,
+                'word_timestamps' => $exercise->word_timestamps,
                 'audio_url_1' => $exercise->audio_url_1,
                 'audio_url_2' => $exercise->audio_url_2,
                 'words' => $exercise->words->map(fn ($word) => [
@@ -116,6 +120,7 @@ class ExerciseController extends Controller
                     'syllables' => $word->syllables,
                     'difficulty' => $word->difficulty,
                     'audio_url' => $word->audio_url,
+                    'word_timestamps' => $word->word_timestamps,
                 ]),
             ]
         ]);
@@ -197,6 +202,7 @@ class ExerciseController extends Controller
                     'difficulty' => $exercise->difficulty->value,
                     'content' => $exercise->content,
                     'words_json' => $exercise->words_json,
+                    'word_timestamps' => $exercise->word_timestamps,
                     'audio_url_1' => $exercise->audio_url_1,
                 ]
             ]);
@@ -246,5 +252,98 @@ class ExerciseController extends Controller
                 'message' => 'Erro ao eliminar exercício: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Regenera áudio e timestamps para todos os exercícios.
+     *
+     * POST /api/regenerate-all-audio?force=true
+     * Header: Authorization: Bearer {ADMIN_SECRET}
+     */
+    public function regenerateAllAudio(
+        Request $request,
+        SimplePausedAudioService $audioService,
+        WordContextTimestampService $wordContextTimestampService
+    ): JsonResponse
+    {
+        if (!$this->hasValidAdminSecret($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $force = filter_var((string) $request->query('force', 'false'), FILTER_VALIDATE_BOOLEAN);
+        $query = Exercise::query()->whereNotNull('sentence')->where('sentence', '!=', '');
+
+        $stats = [
+            'total' => $query->count(),
+            'sucesso' => 0,
+            'erros' => 0,
+            'saltados' => 0,
+        ];
+
+        foreach ($query->cursor() as $exercise) {
+            if (!$force && !empty($exercise->word_timestamps)) {
+                $stats['saltados']++;
+                usleep(500000);
+                continue;
+            }
+
+            try {
+                $result = $audioService->generateSentenceAudioWithTimestamps(
+                    $exercise->sentence,
+                    'pt-PT',
+                    true,
+                    0.9,
+                    $exercise->number,
+                    $force
+                );
+
+                if ($result && !empty($result['path'])) {
+                    $exercise->update([
+                        'audio_url_1' => $result['path'],
+                        'word_timestamps' => $result['word_timestamps'],
+                    ]);
+                    $stats['sucesso']++;
+                } else {
+                    $stats['erros']++;
+                }
+            } catch (\Throwable $e) {
+                $stats['erros']++;
+            }
+
+            usleep(500000);
+        }
+
+        // Segunda fase: reconstruir timestamps das words a partir dos contextos das frases.
+        $contextStats = $wordContextTimestampService->rebuildFromAllExercises(true);
+
+        return response()->json([
+            'success' => true,
+            'total' => $stats['total'],
+            'sucesso' => $stats['sucesso'],
+            'erros' => $stats['erros'],
+            'saltados' => $stats['saltados'],
+            'force' => $force,
+            'word_contexts' => $contextStats,
+        ]);
+    }
+
+    protected function hasValidAdminSecret(Request $request): bool
+    {
+        $configuredSecret = (string) env('ADMIN_SECRET', env('LOCAL_ADMIN_PASSWORD', ''));
+        if ($configuredSecret === '') {
+            return false;
+        }
+
+        $authorization = (string) $request->header('Authorization', '');
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return false;
+        }
+
+        $provided = trim((string) ($matches[1] ?? ''));
+
+        return $provided !== '' && hash_equals($configuredSecret, $provided);
     }
 }

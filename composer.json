@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.2",
         "filament/filament": "4.0",
+        "google/cloud-text-to-speech": "^1.16",
         "firebase/php-jwt": "^7.0",
         "laravel-lang/lang": "^15.28",
         "laravel/framework": "^12.0",

@@ -20,6 +20,7 @@ class Word extends SupabaseModel
         'word',
         'syllables',
         'audio_url',
+        'word_timestamps',
         'difficulty'
     ];
 
@@ -30,7 +31,8 @@ class Word extends SupabaseModel
     {
         return [
             'id' => 'string',
-            'difficulty' => 'integer'
+            'difficulty' => 'integer',
+            'word_timestamps' => 'array',
         ];
     }
 
