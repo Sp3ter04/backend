@@ -22,6 +22,7 @@ class Exercise extends SupabaseModel
         'sentence',
         'words_json',
         'word_timestamps',
+        'word_start_times',
         'difficulty',
         'content',
         'number',
@@ -40,6 +41,7 @@ class Exercise extends SupabaseModel
             'difficulty' => DictationDifficulty::class,
             'words_json' => 'array',
             'word_timestamps' => 'array',
+            'word_start_times' => 'array',
         ];
     }
 
@@ -77,6 +79,33 @@ class Exercise extends SupabaseModel
                 $exercise->content = $exercise->sentence;
             }
         });
+    }
+
+    /**
+     * Array com o startTime de cada palavra (só words, sem pontuação).
+     * Ex: [0, 0.5, 1.2, 2.0, 2.5]
+     */
+    /**
+     * Computa word_start_times a partir de word_timestamps.
+     */
+    public static function computeWordStartTimes(?array $timestamps): ?array
+    {
+        if (!is_array($timestamps) || empty($timestamps)) {
+            return null;
+        }
+
+        $times = [];
+
+        foreach ($timestamps as $entry) {
+            if (($entry['type'] ?? '') !== 'word') {
+                continue;
+            }
+            $times[] = isset($entry['startTime']) && is_numeric($entry['startTime'])
+                ? round((float) $entry['startTime'], 3)
+                : null;
+        }
+
+        return empty($times) ? null : $times;
     }
 
     /**

@@ -77,15 +77,16 @@ class DictationMetric extends SupabaseModel
     }
 
     /**
-     * Get the words with errors (resolved from error_words IDs).
+     * Get the words with errors. error_words armazena os tokens em texto
+     * (ex.: ["céu","ficou"]); fazemos match contra Word.word.
      */
     public function errorWordModels()
     {
         if (!is_array($this->error_words) || empty($this->error_words)) {
             return collect();
         }
-        
-        return Word::whereIn('id', $this->error_words)->get();
+
+        return Word::whereIn('word', $this->error_words)->get();
     }
 
     /**
@@ -93,7 +94,11 @@ class DictationMetric extends SupabaseModel
      */
     public function getErrorWordsTextAttribute(): array
     {
-        return $this->errorWordModels()->pluck('word')->toArray();
+        if (!is_array($this->error_words)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_map('strval', $this->error_words)));
     }
 
 }

@@ -73,6 +73,7 @@ class ExerciseController extends Controller
                     'created_by' => $exercise->created_by,
                     'words_json' => $exercise->words_json,
                     'word_timestamps' => $exercise->word_timestamps,
+                    'word_start_times' => $exercise->word_start_times,
                     'audio_url_1' => $exercise->audio_url_1,
                     'audio_url_2' => $exercise->audio_url_2,
                 ]
@@ -112,6 +113,7 @@ class ExerciseController extends Controller
                 'sentence' => $exercise->sentence,
                 'words_json' => $exercise->words_json,
                 'word_timestamps' => $exercise->word_timestamps,
+                'word_start_times' => $exercise->word_start_times,
                 'audio_url_1' => $exercise->audio_url_1,
                 'audio_url_2' => $exercise->audio_url_2,
                 'words' => $exercise->words->map(fn ($word) => [
@@ -203,6 +205,7 @@ class ExerciseController extends Controller
                     'content' => $exercise->content,
                     'words_json' => $exercise->words_json,
                     'word_timestamps' => $exercise->word_timestamps,
+                    'word_start_times' => $exercise->word_start_times,
                     'audio_url_1' => $exercise->audio_url_1,
                 ]
             ]);

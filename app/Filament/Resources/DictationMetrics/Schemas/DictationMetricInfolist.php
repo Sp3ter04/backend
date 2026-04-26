@@ -57,11 +57,10 @@ class DictationMetricInfolist
                         TextEntry::make('error_words_text')
                             ->label('Error Words')
                             ->state(function ($record) {
-                                $words = $record->errorWordModels();
-                                if ($words->isEmpty()) {
+                                if (!is_array($record->error_words) || empty($record->error_words)) {
                                     return 'Nenhuma';
                                 }
-                                return $words->pluck('word')->unique()->values()->toArray();
+                                return array_values(array_unique(array_map('strval', $record->error_words)));
                             })
                             ->badge()
                             ->listWithLineBreaks()
