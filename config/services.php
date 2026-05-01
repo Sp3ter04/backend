@@ -35,6 +35,10 @@ return [
         ],
     ],
 
+    'internal' => [
+        'token' => env('INTERNAL_API_TOKEN'),
+    ],
+
     'supabase' => [
         'url' => env('SUPABASE_URL'),
         'public_key' => env(

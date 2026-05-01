@@ -1,11 +1,11 @@
-# Auditoria word_timestamps — 2026-04-26 21:27
+# Auditoria word_timestamps — 2026-04-26 23:50
 
 Regras: GAP_HIGH=1s, GAP_MID_TODO=1.3s, LEAD_SECONDS=0.3s.
 
 ## Resumo
 - exercises analisados: 79
-- exercises afetados:   24
-- correções de 1ª palavra geradas: 13
+- exercises afetados:   17
+- correções de 1ª palavra geradas: 0
 - TODOs (gap meio > 1.3s, sem pontuação): 3
 - pausas naturais ignoradas (1.0–1.3s, sem pontuação): 24
 - pausas legítimas (com pontuação): 0
@@ -17,29 +17,9 @@ Regras: GAP_HIGH=1s, GAP_MID_TODO=1.3s, LEAD_SECONDS=0.3s.
 - pausas naturais ignoradas (1.0–1.3s):
   - `seu` → `caderno` : gap 1.004s
 
-## ex#5
-- frase: O padeiro prepara o pão bem dourado.
-- id: `019cb51c-7699-72b6-b2c2-6c0b202f3712`
-- correções propostas:
-  - `[0] O` startTime 0.000 → 0.864  (gap antes 1.164s → depois 0.300s ; próxima palavra: `padeiro`)
-
-## ex#6
-- frase: Os pescadores partiram para pescar peixe fresco.
-- id: `019cb51c-a613-7241-bdc1-e487971ed312`
-- correções propostas:
-  - `[0] Os` startTime 0.000 → 1.126  (gap antes 1.426s → depois 0.300s ; próxima palavra: `pescadores`)
-
-## ex#10
-- frase: O bombeiro bravo apaga o fogo com a sua poderosa mangueira.
-- id: `019cb51d-306d-7314-8550-6e6711c32d73`
-- correções propostas:
-  - `[0] O` startTime 0.000 → 0.901  (gap antes 1.201s → depois 0.300s ; próxima palavra: `bombeiro`)
-
 ## ex#11
 - frase: A decisão de participar no desfile foi bem pensada e divertida.
 - id: `019cb51d-8194-7246-9289-123bc6b5ae74`
-- correções propostas:
-  - `[0] A` startTime 0.000 → 0.777  (gap antes 1.077s → depois 0.300s ; próxima palavra: `decisão`)
 - pausas naturais ignoradas (1.0–1.3s):
   - `pensada` → `e` : gap 1.009s
 
@@ -54,16 +34,12 @@ Regras: GAP_HIGH=1s, GAP_MID_TODO=1.3s, LEAD_SECONDS=0.3s.
 ## ex#13
 - frase: A beleza do castelo antigo perfurava a névoa matinal projetando uma sombra sobre a paisagem.
 - id: `019cb51e-10eb-7322-80e6-884a4a610d24`
-- correções propostas:
-  - `[0] A` startTime 0.000 → 0.717  (gap antes 1.017s → depois 0.300s ; próxima palavra: `beleza`)
 - pausas naturais ignoradas (1.0–1.3s):
   - `sombra` → `sobre` : gap 1.086s
 
 ## ex#14
 - frase: O jardim tem diversas plantas e flores.
 - id: `019cb51e-8aa0-71cc-8cb9-44309fe31e15`
-- correções propostas:
-  - `[0] O` startTime 0.000 → 0.768  (gap antes 1.068s → depois 0.300s ; próxima palavra: `jardim`)
 - pausas naturais ignoradas (1.0–1.3s):
   - `tem` → `diversas` : gap 1.204s
 
@@ -76,8 +52,6 @@ Regras: GAP_HIGH=1s, GAP_MID_TODO=1.3s, LEAD_SECONDS=0.3s.
 ## ex#17
 - frase: A decisão do presidente para arranjar o parque público foi bem recebida pela população.
 - id: `019cb51f-32db-7370-955f-9e11f8517ab6`
-- correções propostas:
-  - `[0] A` startTime 0.000 → 1.846  (gap antes 2.146s → depois 0.300s ; próxima palavra: `decisão`)
 - pausas naturais ignoradas (1.0–1.3s):
   - `bem` → `recebida` : gap 1.004s
 
@@ -89,18 +63,6 @@ Regras: GAP_HIGH=1s, GAP_MID_TODO=1.3s, LEAD_SECONDS=0.3s.
 - pausas naturais ignoradas (1.0–1.3s):
   - `da` → `justiça` : gap 1.119s
   - `dos` → `mais` : gap 1.023s
-
-## ex#24
-- frase: O menino e a menina têm sapatos novos.
-- id: `019cb545-bd6a-7073-82ab-4ff6b329314b`
-- correções propostas:
-  - `[0] O` startTime 0.000 → 0.725  (gap antes 1.025s → depois 0.300s ; próxima palavra: `menino`)
-
-## ex#25
-- frase: O menino tem um sapato.
-- id: `019cb546-0688-7186-acfe-53769625ca30`
-- correções propostas:
-  - `[0] O` startTime 0.000 → 0.762  (gap antes 1.062s → depois 0.300s ; próxima palavra: `menino`)
 
 ## ex#32
 - frase: O Pedro pinta uma parede branca.
@@ -126,23 +88,9 @@ Regras: GAP_HIGH=1s, GAP_MID_TODO=1.3s, LEAD_SECONDS=0.3s.
 - pausas naturais ignoradas (1.0–1.3s):
   - `professora` → `vai` : gap 1.017s
 
-## ex#49
-- frase: O Miguel gosta de jogar futebol.
-- id: `019cbf61-2ce6-720b-bf37-a99492fbde5e`
-- correções propostas:
-  - `[0] O` startTime 0.000 → 0.750  (gap antes 1.050s → depois 0.300s ; próxima palavra: `Miguel`)
-
-## ex#52
-- frase: O menino e a menina têm sapatos novos.
-- id: `5d1f7432-f9da-4bd8-b230-268052f497c2`
-- correções propostas:
-  - `[0] O` startTime 0.000 → 0.725  (gap antes 1.025s → depois 0.300s ; próxima palavra: `menino`)
-
 ## ex#59
 - frase: A brigada de bombeiros demonstrou profissionalismo ao combater o incêndio com determinação e bravura.
 - id: `4145cbcc-5cff-4e39-90f1-b6db43cd3ab4`
-- correções propostas:
-  - `[0] A` startTime 0.000 → 0.806  (gap antes 1.106s → depois 0.300s ; próxima palavra: `brigada`)
 - pausas naturais ignoradas (1.0–1.3s):
   - `brigada` → `de` : gap 1.126s
   - `profissionalismo` → `ao` : gap 1.146s
@@ -165,8 +113,6 @@ Regras: GAP_HIGH=1s, GAP_MID_TODO=1.3s, LEAD_SECONDS=0.3s.
 ## ex#76
 - frase: O projeto pedagógico proposto pela professora Bárbara despertou grande interesse nos alunos.
 - id: `19fdd00c-0804-4c61-b25d-b0202a118174`
-- correções propostas:
-  - `[0] O` startTime 0.000 → 0.877  (gap antes 1.177s → depois 0.300s ; próxima palavra: `projeto`)
 - pausas naturais ignoradas (1.0–1.3s):
   - `Bárbara` → `despertou` : gap 1.091s
   - `grande` → `interesse` : gap 1.024s

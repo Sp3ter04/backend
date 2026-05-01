@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\Internal\AlignmentController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -21,3 +22,14 @@ Route::apiResource('exercises', ExerciseController::class)
     ->whereUuid('exercise');
 
 Route::post('regenerate-all-audio', [ExerciseController::class, 'regenerateAllAudio']);
+
+/*
+ |--------------------------------------------------------------------------
+ | Internal endpoints (worker -> Laravel)
+ |--------------------------------------------------------------------------
+ | Authenticated by a shared secret in the X-Internal-Token header.
+ */
+Route::middleware('internal.token')->prefix('internal')->group(function () {
+    Route::post('exercises/{id}/timestamps', [AlignmentController::class, 'store'])
+        ->whereUuid('id');
+});

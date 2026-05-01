@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: [
             'sb_token',
         ]);
+
+        $middleware->alias([
+            'internal.token' => \App\Http\Middleware\VerifyInternalToken::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
