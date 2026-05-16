@@ -30,26 +30,13 @@ class WordsTable
                 TextColumn::make('word_timestamps')
                     ->label('Timing')
                     ->formatStateUsing(function ($state): string {
-                        if (!is_array($state)) {
-                            return 'Sem timing';
-                        }
+                        $contexts = self::extractInContext($state);
 
-                        $contexts = $state['in_context'] ?? null;
-                        if (!is_array($contexts) || count($contexts) === 0) {
-                            return 'Sem timing';
-                        }
-
-                        return count($contexts) . ' contexto(s)';
+                        return $contexts === null ? 'Sem timing' : count($contexts) . ' contexto(s)';
                     })
                     ->badge()
                     ->color(function ($state): string {
-                        if (!is_array($state)) {
-                            return 'gray';
-                        }
-
-                        $contexts = $state['in_context'] ?? null;
-
-                        return is_array($contexts) && count($contexts) > 0 ? 'success' : 'gray';
+                        return self::extractInContext($state) === null ? 'gray' : 'success';
                     })
                     ->sortable(false),
             ])
@@ -134,5 +121,27 @@ class WordsTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Extrai a lista in_context aceitando array OU string JSON (Filament
+     * por vezes entrega o valor cru da coluna, ignorando o cast do model).
+     *
+     * @return array<int,mixed>|null  null quando não há contextos válidos
+     */
+    protected static function extractInContext(mixed $state): ?array
+    {
+        if (is_string($state)) {
+            $decoded = json_decode($state, true);
+            $state = is_array($decoded) ? $decoded : null;
+        }
+
+        if (!is_array($state)) {
+            return null;
+        }
+
+        $contexts = $state['in_context'] ?? null;
+
+        return is_array($contexts) && count($contexts) > 0 ? $contexts : null;
     }
 }

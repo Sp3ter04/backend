@@ -163,6 +163,33 @@ class WordContextTimestampService
                 'startTime' => $start,
                 'duration' => $duration,
             ];
+
+            // Para tokens hifenizados (ex.: "deu-me", "diz-se"), também emitir
+            // entradas para cada sub-palavra, com tempos proporcionais ao comprimento.
+            if (mb_strpos($token, '-') !== false) {
+                $pieces = preg_split('/-+/u', $token, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                if (count($pieces) > 1) {
+                    $totalLen = 0;
+                    foreach ($pieces as $p) { $totalLen += max(1, mb_strlen($p)); }
+                    $totalDuration = $duration ?? 0.0;
+                    $offset = 0.0;
+                    foreach ($pieces as $piece) {
+                        $pieceNorm = $this->normalizeToken($piece);
+                        $pieceLen = max(1, mb_strlen($piece));
+                        $pieceDuration = $totalDuration > 0 ? $totalDuration * ($pieceLen / $totalLen) : null;
+
+                        if ($pieceNorm !== '' && $pieceNorm !== $normalized) {
+                            $contextsByWord[$pieceNorm][] = [
+                                'exercise_id' => (string) $exercise->id,
+                                'sentence' => (string) $exercise->sentence,
+                                'startTime' => $start + $offset,
+                                'duration' => $pieceDuration,
+                            ];
+                        }
+                        if ($totalDuration > 0) { $offset += $totalDuration * ($pieceLen / $totalLen); }
+                    }
+                }
+            }
         }
 
         return $contextsByWord;

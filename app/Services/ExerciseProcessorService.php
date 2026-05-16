@@ -215,10 +215,13 @@ class ExerciseProcessorService
     protected function extractWords(string $text): array
     {
         // Remover pontuação mas manter acentos/caracteres portugueses
-        $text = preg_replace('/[.,;:!?¿¡()\[\]{}"\'«»\-–—…\/\\\\]/', ' ', $text);
+        // Importante: o modificador /u é obrigatório, caso contrário a classe
+        // trata bytes UTF-8 individualmente e destrói caracteres acentuados
+        // (ex.: o byte A1 de "á" coincidiria com o byte A1 de "¡").
+        $text = preg_replace('/[.,;:!?¿¡()\[\]{}"\'«»\-–—…\/\\\\]/u', ' ', $text);
 
         // Dividir por espaços e filtrar vazios
-        $words = preg_split('/\s+/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
+        $words = preg_split('/\s+/u', trim($text), -1, PREG_SPLIT_NO_EMPTY);
 
         return $words ?: [];
     }
