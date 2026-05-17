@@ -165,13 +165,13 @@ class SimplePausedAudioService
         $filename = $this->generateFilename($originalSentence, $insertPauses, $speed, $exerciseNumber);
         $finalPath = "audio/sentences/{$filename}";
         
-        // Check if already exists
+        // Check if already exists — return null timestamps so the caller keeps
+        // any previously-stored real timestamps instead of overwriting them with
+        // a fallback that has startTime=null for every token except the first.
         if (!$forceRegenerate && Storage::disk('public')->exists($finalPath)) {
-            $timestamps = app(GoogleTtsTimestampService::class)->buildFallbackTimestamps($sentence);
-
             return [
                 'path' => $finalPath,
-                'word_timestamps' => $timestamps,
+                'word_timestamps' => null,
             ];
         }
         

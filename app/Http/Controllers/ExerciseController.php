@@ -304,10 +304,16 @@ class ExerciseController extends Controller
                 );
 
                 if ($result && !empty($result['path'])) {
-                    $exercise->update([
-                        'audio_url_1' => $result['path'],
-                        'word_timestamps' => $result['word_timestamps'],
-                    ]);
+                    $updateData = ['audio_url_1' => $result['path']];
+
+                    if (!empty($result['word_timestamps'])) {
+                        $updateData['word_timestamps'] = $result['word_timestamps'];
+                        $updateData['word_start_times'] = Exercise::computeWordStartTimes($result['word_timestamps']);
+                    } elseif (empty($exercise->word_start_times) && !empty($exercise->word_timestamps)) {
+                        $updateData['word_start_times'] = Exercise::computeWordStartTimes($exercise->word_timestamps);
+                    }
+
+                    $exercise->update($updateData);
                     $stats['sucesso']++;
                 } else {
                     $stats['erros']++;

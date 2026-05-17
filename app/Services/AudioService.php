@@ -44,9 +44,15 @@ class AudioService
 
         $folder = trim($folder, '/');
 
-        // Nome do ficheiro baseado no texto
+        // Nome do ficheiro baseado no texto.
+        // Se o texto contém caracteres não-ASCII (ex.: acentos como á, ã, ç),
+        // adicionamos um hash curto ao nome para evitar colisões entre palavras
+        // que produzem o mesmo slug (ex.: "da" e "dá" → ambos slug "da").
         $slugBase = $filenamePrefix ? ($filenamePrefix . ' ' . $text) : $text;
-        $filename = Str::slug($slugBase) . '.mp3';
+        $slug = Str::slug($slugBase);
+        $filename = preg_match('/[^\x00-\x7F]/u', $text)
+            ? $slug . '-' . substr(md5($text), 0, 8) . '.mp3'
+            : $slug . '.mp3';
         $path = "audio/{$folder}/{$filename}";
 
         // Se já existe, retornar o caminho

@@ -157,10 +157,20 @@ class ExerciseProcessorService
             );
 
             if ($result && !empty($result['path'])) {
-                $exercise->update([
-                    'audio_url_1' => $result['path'],
-                    'word_timestamps' => $result['word_timestamps'],
-                ]);
+                $updateData = ['audio_url_1' => $result['path']];
+
+                // Only overwrite word_timestamps when new real timestamps were generated.
+                // When the audio file already existed, $result['word_timestamps'] is null,
+                // meaning we should preserve any previously-stored timestamps.
+                if (!empty($result['word_timestamps'])) {
+                    $updateData['word_timestamps'] = $result['word_timestamps'];
+                    $updateData['word_start_times'] = Exercise::computeWordStartTimes($result['word_timestamps']);
+                } elseif (empty($exercise->word_start_times) && !empty($exercise->word_timestamps)) {
+                    // Backfill word_start_times if missing but word_timestamps exists
+                    $updateData['word_start_times'] = Exercise::computeWordStartTimes($exercise->word_timestamps);
+                }
+
+                $exercise->update($updateData);
             }
         } catch (\Exception $e) {
             Log::warning('Falha ao gerar áudio da frase do exercício ' . $exercise->id . ': ' . $e->getMessage());
