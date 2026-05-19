@@ -9,6 +9,7 @@ use App\Models\Word;
 use App\Models\WordSyllable;
 use App\Services\AudioService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ExerciseProcessorService
@@ -90,11 +91,8 @@ class ExerciseProcessorService
             ]);
         });
 
-        // Gerar áudio para a frase completa (fora da transaction para não bloquear)
-        $this->generateSentenceAudio($exercise);
-
-        // Propagar timestamps em contexto da frase para words.word_timestamps.
-        $this->syncWordContextTimestamps($exercise);
+        // Gerar áudio + timestamps (via Google Cloud TTS ou worker WhisperX síncrono).
+        $this->generateTimestamps($exercise->fresh(), force: false);
 
         // Gerar áudio para cada palavra individual
         $this->generateWordsAudio($exercise);
@@ -135,6 +133,95 @@ class ExerciseProcessorService
     }
 
     /**
+     * Gera (ou regenera) word_timestamps e word_start_times para um único exercício.
+     *
+     * Estratégia:
+     *   1. Regenera o áudio com Google Cloud TTS (SSML marks → timestamps reais).
+     *   2. Se o Google Cloud TTS não devolver timestamps, chama o worker WhisperX
+     *      via /align-sync (síncrono) e guarda o resultado diretamente.
+     *
+     * @return bool True se os timestamps foram guardados com sucesso.
+     */
+    public function generateTimestamps(Exercise $exercise, bool $force = true): bool
+    {
+        $sentence = $exercise->sentence;
+        if (empty($sentence)) {
+            return false;
+        }
+
+        // 1 — Gerar / reutilizar áudio e tentar obter timestamps via TTS.
+        try {
+            $audioService = app(SimplePausedAudioService::class);
+
+            $result = $audioService->generateSentenceAudioWithTimestamps(
+                $sentence,
+                'pt-PT',
+                true,
+                0.9,
+                $exercise->number,
+                $force
+            );
+        } catch (\Exception $e) {
+            Log::warning('Falha ao gerar áudio para exercício ' . $exercise->id . ': ' . $e->getMessage());
+            $result = null;
+        }
+
+        if ($result && !empty($result['path'])) {
+            $exercise->update(['audio_url_1' => $result['path']]);
+            $exercise = $exercise->fresh();
+        }
+
+        // 2 — Se o TTS devolveu timestamps reais, guarda e termina.
+        if (!empty($result['word_timestamps'])) {
+            $exercise->update([
+                'word_timestamps' => $result['word_timestamps'],
+                'word_start_times' => Exercise::computeWordStartTimes($result['word_timestamps']),
+            ]);
+            $this->syncWordContextTimestamps($exercise->fresh());
+            return true;
+        }
+
+        // 3 — Sem timestamps do TTS: chamar o worker WhisperX de forma síncrona.
+        $workerUrl = rtrim((string) env('ALIGNMENT_WORKER_URL', ''), '/');
+        $audioPath = $exercise->audio_url_1;
+
+        if (empty($workerUrl) || empty($audioPath)) {
+            Log::warning('generateTimestamps: worker não configurado ou sem áudio para exercício ' . $exercise->id);
+            return false;
+        }
+
+        try {
+            $response = Http::timeout(120)->post("{$workerUrl}/align-sync", [
+                'exercise_id' => $exercise->id,
+                'audio_path'  => $audioPath,
+                'transcript'  => $exercise->content ?: $exercise->sentence,
+            ]);
+
+            if (!$response->successful()) {
+                Log::warning('Worker /align-sync falhou para exercício ' . $exercise->id . ': ' . $response->body());
+                return false;
+            }
+
+            $timestamps = $response->json('word_timestamps');
+
+            if (empty($timestamps)) {
+                Log::warning('Worker /align-sync devolveu timestamps vazios para exercício ' . $exercise->id);
+                return false;
+            }
+
+            $exercise->update([
+                'word_timestamps' => $timestamps,
+                'word_start_times' => Exercise::computeWordStartTimes($timestamps),
+            ]);
+            $this->syncWordContextTimestamps($exercise->fresh());
+            return true;
+        } catch (\Exception $e) {
+            Log::warning('Falha ao chamar worker para exercício ' . $exercise->id . ': ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Gera áudio TTS para a frase completa do exercício.
      */
     protected function generateSentenceAudio(Exercise $exercise): void
@@ -171,9 +258,41 @@ class ExerciseProcessorService
                 }
 
                 $exercise->update($updateData);
+
+                // If no real timestamps were saved (fallback TTS), submit to the
+                // WhisperX alignment worker so timestamps are populated asynchronously.
+                $hasTimestamps = !empty($updateData['word_timestamps'])
+                    || !empty($exercise->word_timestamps);
+
+                if (!$hasTimestamps) {
+                    $this->submitToAlignmentWorker($exercise->fresh());
+                }
             }
         } catch (\Exception $e) {
             Log::warning('Falha ao gerar áudio da frase do exercício ' . $exercise->id . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Submits the exercise to the WhisperX alignment worker for timestamp generation.
+     * Fire-and-forget: failures are logged but never re-thrown.
+     */
+    protected function submitToAlignmentWorker(Exercise $exercise): void
+    {
+        $workerUrl = rtrim((string) env('ALIGNMENT_WORKER_URL', ''), '/');
+
+        if (empty($workerUrl) || empty($exercise->audio_url_1)) {
+            return;
+        }
+
+        try {
+            Http::timeout(5)->post("{$workerUrl}/align", [
+                'exercise_id' => $exercise->id,
+                'audio_path'  => $exercise->audio_url_1,
+                'transcript'  => $exercise->content ?: $exercise->sentence,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Could not submit exercise ' . $exercise->id . ' to alignment worker: ' . $e->getMessage());
         }
     }
 

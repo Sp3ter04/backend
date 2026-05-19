@@ -145,6 +145,3 @@ class WordsTable
         return is_array($contexts) && count($contexts) > 0 ? $contexts : null;
     }
 }
-curl -X POST "https://education.medtrack.click/api/regenerate-all-audio?force=true" \
-  -H "Authorization: Bearer SEU_ADMIN_SECRET" \
-  -H "Accept: application/json"

@@ -192,7 +192,9 @@ class SimplePausedAudioService
             // Fallback to legacy Google Translate flow if needed.
             if (!$audioData) {
                 $audioData = $this->fetchGoogleTTS($sentence, $lang);
-                $timestamps = app(GoogleTtsTimestampService::class)->buildFallbackTimestamps($sentence);
+                // Fallback TTS has no real SSML marks → leave timestamps null so the
+                // WhisperX alignment worker can provide accurate timestamps later.
+                $timestamps = null;
 
                 if ($audioData && $speed !== 1.0) {
                     $audioData = $this->processAudioSpeed($audioData, $speed);
