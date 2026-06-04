@@ -82,7 +82,7 @@ class WordsTable
                             $url = asset('storage/' . $audioPath);
                             $url = str_replace("'", "\\'", $url);
                             $word = str_replace("'", "\\'", $record->word);
-                            $speakFn = "function _dysSpeak(text) {
+                            $speakFn = "window._dysSpeak = function(text) {
                                 window.speechSynthesis.cancel();
                                 const utt = new SpeechSynthesisUtterance(text);
                                 utt.lang = 'pt-PT';
@@ -99,24 +99,24 @@ class WordsTable
                                 }
                                 if (window.speechSynthesis.getVoices().length > 0) { _pickVoice(); }
                                 else { window.speechSynthesis.onvoiceschanged = _pickVoice; }
-                            }";
+                            };";
 
                             $livewire->js("
                                 {$speakFn}
                                 const audio = new Audio('{$url}');
                                 audio.onerror = function() {
                                     console.warn('Áudio não encontrado para a palavra \"{$word}\", usando síntese de voz');
-                                    _dysSpeak('{$word}');
+                                    window._dysSpeak('{$word}');
                                 };
                                 audio.play().catch(error => {
                                     console.warn('Erro ao reproduzir áudio para a palavra \"{$word}\":', error);
-                                    _dysSpeak('{$word}');
+                                    window._dysSpeak('{$word}');
                                 });
                             ");
                         } else {
                             // Fallback para síntese de voz se não há áudio
                             $word = str_replace("'", "\\'", $record->word);
-                            $speakFn = "function _dysSpeak(text) {
+                            $speakFn = "window._dysSpeak = function(text) {
                                 window.speechSynthesis.cancel();
                                 const utt = new SpeechSynthesisUtterance(text);
                                 utt.lang = 'pt-PT';
@@ -133,10 +133,10 @@ class WordsTable
                                 }
                                 if (window.speechSynthesis.getVoices().length > 0) { _pickVoice(); }
                                 else { window.speechSynthesis.onvoiceschanged = _pickVoice; }
-                            }";
+                            };";
                             $livewire->js("
                                 {$speakFn}
-                                _dysSpeak('{$word}');
+                                window._dysSpeak('{$word}');
                             ");
                         }
                     }),

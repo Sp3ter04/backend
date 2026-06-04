@@ -126,7 +126,7 @@ class ExercisesTable
                         }
                         
                         // Reproduz o áudio se houver
-                        $speakFn = "function _dysSpeak(text) {
+                        $speakFn = "window._dysSpeak = function(text) {
                             window.speechSynthesis.cancel();
                             const utt = new SpeechSynthesisUtterance(text);
                             utt.lang = 'pt-PT';
@@ -143,7 +143,7 @@ class ExercisesTable
                             }
                             if (window.speechSynthesis.getVoices().length > 0) { _pickVoice(); }
                             else { window.speechSynthesis.onvoiceschanged = _pickVoice; }
-                        }";
+                        };",
 
                         if ($audioUrl) {
                             $audioPath = ltrim($audioUrl, '/');
@@ -155,11 +155,11 @@ class ExercisesTable
                                 const audio = new Audio('{$url}');
                                 audio.onerror = function() {
                                     console.warn('Áudio não encontrado para exercício {$record->number}, usando síntese de voz');
-                                    _dysSpeak('{$sentence}');
+                                    window._dysSpeak('{$sentence}');
                                 };
                                 audio.play().catch(error => {
                                     console.warn('Erro ao reproduzir áudio para exercício {$record->number}:', error);
-                                    _dysSpeak('{$sentence}');
+                                    window._dysSpeak('{$sentence}');
                                 });
                             ");
                         } else {
@@ -167,7 +167,7 @@ class ExercisesTable
                             $sentence = str_replace("'", "\\'", $record->sentence);
                             $livewire->js("
                                 {$speakFn}
-                                _dysSpeak('{$sentence}');
+                                window._dysSpeak('{$sentence}');
                             ");
                         }
                     }),
