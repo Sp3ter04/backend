@@ -143,7 +143,7 @@ class ExercisesTable
                             }
                             if (window.speechSynthesis.getVoices().length > 0) { _pickVoice(); }
                             else { window.speechSynthesis.onvoiceschanged = _pickVoice; }
-                        };",
+                        };";
 
                         if ($audioUrl) {
                             $audioPath = ltrim($audioUrl, '/');
