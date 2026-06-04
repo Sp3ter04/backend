@@ -82,61 +82,34 @@ class WordsTable
                             $url = asset('storage/' . $audioPath);
                             $url = str_replace("'", "\\'", $url);
                             $word = str_replace("'", "\\'", $record->word);
-                            $speakFn = "window._dysSpeak = function(text) {
-                                window.speechSynthesis.cancel();
-                                const utt = new SpeechSynthesisUtterance(text);
-                                utt.lang = 'pt-PT';
-                                utt.rate = 0.85;
-                                function _pickVoice() {
-                                    const voices = window.speechSynthesis.getVoices();
-                                    const preferred = ['Joana', 'Luciana', 'Catarina', 'Francisca'];
-                                    const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
-                                    const best = preferred.reduce((found, name) => found || ptVoices.find(v => v.name.includes(name)), null)
-                                        || ptVoices.find(v => v.localService)
-                                        || ptVoices[0];
-                                    if (best) utt.voice = best;
-                                    window.speechSynthesis.speak(utt);
-                                }
-                                if (window.speechSynthesis.getVoices().length > 0) { _pickVoice(); }
-                                else { window.speechSynthesis.onvoiceschanged = _pickVoice; }
-                            };";
-
                             $livewire->js("
-                                {$speakFn}
                                 const audio = new Audio('{$url}');
                                 audio.onerror = function() {
                                     console.warn('Áudio não encontrado para a palavra \"{$word}\", usando síntese de voz');
-                                    window._dysSpeak('{$word}');
+                                    window.speechSynthesis.cancel();
+                                    const utterance = new SpeechSynthesisUtterance('{$word}');
+                                    utterance.lang = 'pt-PT';
+                                    utterance.rate = 0.85;
+                                    window.speechSynthesis.speak(utterance);
                                 };
                                 audio.play().catch(error => {
                                     console.warn('Erro ao reproduzir áudio para a palavra \"{$word}\":', error);
-                                    window._dysSpeak('{$word}');
+                                    window.speechSynthesis.cancel();
+                                    const utterance = new SpeechSynthesisUtterance('{$word}');
+                                    utterance.lang = 'pt-PT';
+                                    utterance.rate = 0.85;
+                                    window.speechSynthesis.speak(utterance);
                                 });
                             ");
                         } else {
                             // Fallback para síntese de voz se não há áudio
                             $word = str_replace("'", "\\'", $record->word);
-                            $speakFn = "window._dysSpeak = function(text) {
-                                window.speechSynthesis.cancel();
-                                const utt = new SpeechSynthesisUtterance(text);
-                                utt.lang = 'pt-PT';
-                                utt.rate = 0.85;
-                                function _pickVoice() {
-                                    const voices = window.speechSynthesis.getVoices();
-                                    const preferred = ['Joana', 'Luciana', 'Catarina', 'Francisca'];
-                                    const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
-                                    const best = preferred.reduce((found, name) => found || ptVoices.find(v => v.name.includes(name)), null)
-                                        || ptVoices.find(v => v.localService)
-                                        || ptVoices[0];
-                                    if (best) utt.voice = best;
-                                    window.speechSynthesis.speak(utt);
-                                }
-                                if (window.speechSynthesis.getVoices().length > 0) { _pickVoice(); }
-                                else { window.speechSynthesis.onvoiceschanged = _pickVoice; }
-                            };";
                             $livewire->js("
-                                {$speakFn}
-                                window._dysSpeak('{$word}');
+                                window.speechSynthesis.cancel();
+                                const utterance = new SpeechSynthesisUtterance('{$word}');
+                                utterance.lang = 'pt-PT';
+                                utterance.rate = 0.85;
+                                window.speechSynthesis.speak(utterance);
                             ");
                         }
                     }),
