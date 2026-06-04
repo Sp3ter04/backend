@@ -126,39 +126,48 @@ class ExercisesTable
                         }
                         
                         // Reproduz o áudio se houver
+                        $speakFn = "function _dysSpeak(text) {
+                            window.speechSynthesis.cancel();
+                            const utt = new SpeechSynthesisUtterance(text);
+                            utt.lang = 'pt-PT';
+                            utt.rate = 0.85;
+                            function _pickVoice() {
+                                const voices = window.speechSynthesis.getVoices();
+                                const preferred = ['Joana', 'Luciana', 'Catarina', 'Francisca'];
+                                const ptVoices = voices.filter(v => v.lang.startsWith('pt'));
+                                const best = preferred.reduce((found, name) => found || ptVoices.find(v => v.name.includes(name)), null)
+                                    || ptVoices.find(v => v.localService)
+                                    || ptVoices[0];
+                                if (best) utt.voice = best;
+                                window.speechSynthesis.speak(utt);
+                            }
+                            if (window.speechSynthesis.getVoices().length > 0) { _pickVoice(); }
+                            else { window.speechSynthesis.onvoiceschanged = _pickVoice; }
+                        }";
+
                         if ($audioUrl) {
                             $audioPath = ltrim($audioUrl, '/');
                             $url = asset('storage/' . $audioPath);
                             $url = str_replace("'", "\\'", $url);
                             $sentence = str_replace("'", "\\'", $record->sentence);
                             $livewire->js("
+                                {$speakFn}
                                 const audio = new Audio('{$url}');
                                 audio.onerror = function() {
                                     console.warn('Áudio não encontrado para exercício {$record->number}, usando síntese de voz');
-                                    window.speechSynthesis.cancel();
-                                    const utterance = new SpeechSynthesisUtterance('{$sentence}');
-                                    utterance.lang = 'pt-PT';
-                                    utterance.rate = 0.85;
-                                    window.speechSynthesis.speak(utterance);
+                                    _dysSpeak('{$sentence}');
                                 };
                                 audio.play().catch(error => {
                                     console.warn('Erro ao reproduzir áudio para exercício {$record->number}:', error);
-                                    window.speechSynthesis.cancel();
-                                    const utterance = new SpeechSynthesisUtterance('{$sentence}');
-                                    utterance.lang = 'pt-PT';
-                                    utterance.rate = 0.85;
-                                    window.speechSynthesis.speak(utterance);
+                                    _dysSpeak('{$sentence}');
                                 });
                             ");
                         } else {
                             // Fallback para síntese de voz se não há áudio
                             $sentence = str_replace("'", "\\'", $record->sentence);
                             $livewire->js("
-                                window.speechSynthesis.cancel();
-                                const utterance = new SpeechSynthesisUtterance('{$sentence}');
-                                utterance.lang = 'pt-PT';
-                                utterance.rate = 0.85;
-                                window.speechSynthesis.speak(utterance);
+                                {$speakFn}
+                                _dysSpeak('{$sentence}');
                             ");
                         }
                     }),
