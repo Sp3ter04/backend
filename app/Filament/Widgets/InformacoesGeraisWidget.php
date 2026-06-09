@@ -25,7 +25,8 @@ class InformacoesGeraisWidget extends BaseWidget
             $totalAlunos        = User::where('role', 'aluno')->count();
             $totalProfissionais = User::where('role', 'profissional')->count();
             $totalExercicios    = Exercise::count();
-            $totalDitados       = DB::table('dictation_metrics')->count();
+            $totalDitados       = DB::table('dictation_metrics')->count()
+                                + DB::table('speech_metrics')->count();
             $totalEscolas       = User::where('role', 'aluno')
                                       ->whereNotNull('school_id')
                                       ->distinct('school_id')

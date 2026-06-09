@@ -19,16 +19,27 @@ class MetricasUsoWidget extends BaseWidget
     protected function getStats(): array
     {
         try {
-            $totalAlunos  = DB::table('users')->where('role', 'aluno')->count();
-            $totalDitados = DB::table('dictation_metrics')->count();
+            $totalAlunos    = DB::table('users')->where('role', 'aluno')->count();
+            $totalDitados   = DB::table('dictation_metrics')->count();
+            $totalFala      = DB::table('speech_metrics')->count();
+            $totalAvaliados = $totalDitados + $totalFala;
 
-            $mediaDitados = $totalAlunos > 0
-                ? round($totalDitados / $totalAlunos, 1)
+            $mediaExercicios = $totalAlunos > 0
+                ? round($totalAvaliados / $totalAlunos, 1)
                 : 0;
 
-            // Retenção: alunos ativos em mais de 1 mês
-            $mesPorAluno = DB::table('dictation_metrics')
-                ->selectRaw("student_id, TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes")
+            // Retenção: alunos ativos em mais de 1 mês (ditados + fala)
+            $mesPorAlunoDitados = DB::table('dictation_metrics')
+                ->selectRaw("student_id, TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes");
+
+            $mesPorAlunoFala = DB::table('speech_metrics')
+                ->selectRaw("student_id, TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes");
+
+            $mesPorAluno = DB::table(
+                    $mesPorAlunoDitados->unionAll($mesPorAlunoFala),
+                    'combined'
+                )
+                ->selectRaw('student_id, mes')
                 ->groupBy('student_id', 'mes')
                 ->get()
                 ->groupBy('student_id');
@@ -38,13 +49,25 @@ class MetricasUsoWidget extends BaseWidget
                 ? round($multiMes / $totalAlunos * 100, 1)
                 : 0;
 
-            // Alunos com 5+ ditados
-            $com5Mais = DB::table('dictation_metrics')
+            // Alunos com 5+ exercícios (ditados + fala)
+            $ditadosPorAluno = DB::table('dictation_metrics')
                 ->selectRaw('student_id, COUNT(*) as total')
-                ->groupBy('student_id')
-                ->havingRaw('COUNT(*) >= 5')
-                ->get()
+                ->groupBy('student_id');
+
+            $falaPorAluno = DB::table('speech_metrics')
+                ->selectRaw('student_id, COUNT(*) as total')
+                ->groupBy('student_id');
+
+            $com5Mais = DB::table(
+                    DB::table(
+                        $ditadosPorAluno->unionAll($falaPorAluno),
+                        'union_totals'
+                    )->selectRaw('student_id, SUM(total) as grand_total')->groupBy('student_id'),
+                    'per_student'
+                )
+                ->where('grand_total', '>=', 5)
                 ->count();
+
             $pct5Mais = $totalAlunos > 0
                 ? round($com5Mais / $totalAlunos * 100, 1)
                 : 0;
@@ -60,7 +83,8 @@ class MetricasUsoWidget extends BaseWidget
         }
 
         return [
-            Stat::make('Ditados / Aluno (média)', $mediaDitados)
+            Stat::make('Exercícios / Aluno (média)', $mediaExercicios)
+                ->description("{$totalDitados} ditados · {$totalFala} fala")
                 ->icon('heroicon-o-microphone')
                 ->color('success'),
 
@@ -69,7 +93,7 @@ class MetricasUsoWidget extends BaseWidget
                 ->icon('heroicon-o-arrow-trending-up')
                 ->color('info'),
 
-            Stat::make('Alunos c/ 5+ ditados', "{$pct5Mais}%")
+            Stat::make('Alunos c/ 5+ exercícios', "{$pct5Mais}%")
                 ->description('dos alunos registados')
                 ->icon('heroicon-o-check-badge')
                 ->color('warning'),

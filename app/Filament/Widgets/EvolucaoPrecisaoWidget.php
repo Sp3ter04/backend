@@ -9,7 +9,7 @@ class EvolucaoPrecisaoWidget extends ChartWidget
 {
     protected ?string $heading = 'Evolução da Precisão Média';
 
-    protected ?string $description = 'Precisão média (%) dos ditados ao longo do tempo';
+    protected ?string $description = 'Precisão média (%) dos exercícios ao longo do tempo';
 
     protected static ?int $sort = 5;
 
@@ -25,13 +25,20 @@ class EvolucaoPrecisaoWidget extends ChartWidget
                      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
         try {
-            $rows = DB::table('dictation_metrics')
-                ->selectRaw("
-                    TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes,
-                    ROUND(AVG(accuracy_percent)::numeric, 1) as precisao
-                ")
-                ->whereNotNull('accuracy_percent')
-                ->groupBy('mes')
+            $ditados = DB::table('dictation_metrics')
+                ->selectRaw("TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes, accuracy_percent as score")
+                ->whereNotNull('accuracy_percent');
+
+            $fala = DB::table('speech_metrics')
+                ->selectRaw("TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes, accuracy_score as score")
+                ->whereNotNull('accuracy_score');
+
+            $rows = DB::table(
+                    DB::table($ditados->unionAll($fala), 'union_scores')
+                        ->selectRaw("mes, ROUND(AVG(score)::numeric, 1) as precisao")
+                        ->groupBy('mes'),
+                    'combined'
+                )
                 ->orderBy('mes')
                 ->get();
 

@@ -22,26 +22,41 @@ class TiposErroWidget extends ChartWidget
     protected function getData(): array
     {
         try {
-            $row = DB::table('dictation_metrics')
+            $ditados = DB::table('dictation_metrics')
                 ->selectRaw('
-                    COALESCE(SUM(letter_substitution_count), 0) as substituicao,
-                    COALESCE(SUM(letter_omission_count), 0)     as omissao,
-                    COALESCE(SUM(letter_insertion_count), 0)    as insercao,
-                    COALESCE(SUM(transposition_count), 0)       as transposicao,
-                    COALESCE(SUM(split_join_count), 0)          as split_join,
+                    COALESCE(SUM(letter_substitution_count), 0)  as substituicao,
+                    COALESCE(SUM(letter_omission_count), 0)      as omissao,
+                    COALESCE(SUM(letter_insertion_count), 0)     as insercao,
+                    COALESCE(SUM(transposition_count), 0)        as transposicao,
+                    COALESCE(SUM(split_join_count), 0)           as split_join,
                     COALESCE(SUM(capitalization_error_count), 0) as capitalizacao,
-                    COALESCE(SUM(punctuation_error_count), 0)   as pontuacao
+                    COALESCE(SUM(punctuation_error_count), 0)    as pontuacao,
+                    COALESCE(SUM(mispronunciation_count), 0)     as pronuncia
+                ')
+                ->first();
+
+            $fala = DB::table('speech_metrics')
+                ->selectRaw('
+                    COALESCE(SUM(substitution_count), 0)     as substituicao,
+                    COALESCE(SUM(omission_count), 0)         as omissao,
+                    COALESCE(SUM(insertion_count), 0)        as insercao,
+                    0                                        as transposicao,
+                    0                                        as split_join,
+                    0                                        as capitalizacao,
+                    0                                        as pontuacao,
+                    COALESCE(SUM(mispronunciation_count), 0) as pronuncia
                 ')
                 ->first();
 
             $map = [
-                'Substituição'  => (int) $row->substituicao,
-                'Omissão'       => (int) $row->omissao,
-                'Inserção'      => (int) $row->insercao,
-                'Transposição'  => (int) $row->transposicao,
-                'União/Divisão' => (int) $row->split_join,
-                'Capitalização' => (int) $row->capitalizacao,
-                'Pontuação'     => (int) $row->pontuacao,
+                'Substituição'  => (int) $ditados->substituicao  + (int) $fala->substituicao,
+                'Omissão'       => (int) $ditados->omissao        + (int) $fala->omissao,
+                'Inserção'      => (int) $ditados->insercao       + (int) $fala->insercao,
+                'Pronúncia'     => (int) $ditados->pronuncia      + (int) $fala->pronuncia,
+                'Transposição'  => (int) $ditados->transposicao,
+                'União/Divisão' => (int) $ditados->split_join,
+                'Capitalização' => (int) $ditados->capitalizacao,
+                'Pontuação'     => (int) $ditados->pontuacao,
             ];
 
             // Order by descending total

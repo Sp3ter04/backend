@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AlunoController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\SupabaseUserController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,8 @@ Route::middleware('auth:supabase')->group(function () {
 
     Route::get('/alunos/criar', [AlunoController::class, 'create']);
     Route::post('/alunos', [AlunoController::class, 'store']);
+
+    Route::get('/contacts', [ContactController::class, 'index'])->name('contacts.index');
 });
 
 // --- Rotas de teste/debug (remover em produção) ---

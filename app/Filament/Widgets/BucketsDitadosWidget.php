@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class BucketsDitadosWidget extends ChartWidget
 {
-    protected ?string $heading = 'Distribuição de Ditados por Aluno';
+    protected ?string $heading = 'Distribuição de Exercícios por Aluno';
 
-    protected ?string $description = 'Quantos ditados cada aluno realizou';
+    protected ?string $description = 'Quantos exercícios (ditados + fala) cada aluno realizou';
 
     protected static ?int $sort = 4;
 
@@ -22,9 +22,20 @@ class BucketsDitadosWidget extends ChartWidget
     protected function getData(): array
     {
         try {
-            $counts = DB::table('dictation_metrics')
+            $ditados = DB::table('dictation_metrics')
                 ->selectRaw('student_id, COUNT(*) as total')
-                ->groupBy('student_id')
+                ->groupBy('student_id');
+
+            $fala = DB::table('speech_metrics')
+                ->selectRaw('student_id, COUNT(*) as total')
+                ->groupBy('student_id');
+
+            $counts = DB::table(
+                    DB::table($ditados->unionAll($fala), 'union_counts')
+                        ->selectRaw('student_id, SUM(total) as total')
+                        ->groupBy('student_id'),
+                    'per_student'
+                )
                 ->get()
                 ->pluck('total')
                 ->toArray();

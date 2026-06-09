@@ -9,7 +9,7 @@ class DistribuicaoPrecisaoWidget extends ChartWidget
 {
     protected ?string $heading = 'Distribuição de Precisão';
 
-    protected ?string $description = 'Ditados por faixa de desempenho';
+    protected ?string $description = 'Exercícios por faixa de desempenho';
 
     protected static ?int $sort = 8;
 
@@ -22,14 +22,21 @@ class DistribuicaoPrecisaoWidget extends ChartWidget
     protected function getData(): array
     {
         try {
-            $row = DB::table('dictation_metrics')
+            $ditados = DB::table('dictation_metrics')
+                ->selectRaw('accuracy_percent as score')
+                ->whereNotNull('accuracy_percent');
+
+            $fala = DB::table('speech_metrics')
+                ->selectRaw('accuracy_score as score')
+                ->whereNotNull('accuracy_score');
+
+            $row = DB::table($ditados->unionAll($fala), 'all_scores')
                 ->selectRaw('
-                    COUNT(CASE WHEN accuracy_percent >= 90                         THEN 1 END) as excelente,
-                    COUNT(CASE WHEN accuracy_percent >= 75 AND accuracy_percent < 90 THEN 1 END) as bom,
-                    COUNT(CASE WHEN accuracy_percent >= 50 AND accuracy_percent < 75 THEN 1 END) as medio,
-                    COUNT(CASE WHEN accuracy_percent <  50                         THEN 1 END) as fraco
+                    COUNT(CASE WHEN score >= 90                 THEN 1 END) as excelente,
+                    COUNT(CASE WHEN score >= 75 AND score < 90 THEN 1 END) as bom,
+                    COUNT(CASE WHEN score >= 50 AND score < 75 THEN 1 END) as medio,
+                    COUNT(CASE WHEN score <  50                THEN 1 END) as fraco
                 ')
-                ->whereNotNull('accuracy_percent')
                 ->first();
 
             $data = [

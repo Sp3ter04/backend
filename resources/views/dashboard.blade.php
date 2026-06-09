@@ -94,6 +94,13 @@
             <h3>Dados completos do JWT</h3>
             <pre>{{ json_encode(Auth::user()->getClaims(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
         </div>
+
+        <div style="background:white;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);margin-top:20px;">
+            <h3 style="margin:0 0 12px 0;">Acesso rápido</h3>
+            <a href="{{ route('contacts.index') }}" style="display:inline-block;padding:10px 20px;background:#007bff;color:white;border-radius:4px;text-decoration:none;font-size:14px;">
+                📋 Ver Contatos
+            </a>
+        </div>
     </div>
 
     <script type="module">

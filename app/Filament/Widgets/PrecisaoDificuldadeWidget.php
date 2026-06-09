@@ -22,11 +22,22 @@ class PrecisaoDificuldadeWidget extends ChartWidget
     protected function getData(): array
     {
         try {
-            $rows = DB::table('dictation_metrics')
-                ->selectRaw("difficulty, ROUND(AVG(accuracy_percent)::numeric, 1) as media")
+            $ditados = DB::table('dictation_metrics')
+                ->selectRaw('difficulty, accuracy_percent as score')
                 ->whereNotNull('accuracy_percent')
-                ->whereNotNull('difficulty')
-                ->groupBy('difficulty')
+                ->whereNotNull('difficulty');
+
+            $fala = DB::table('speech_metrics')
+                ->selectRaw('difficulty, accuracy_score as score')
+                ->whereNotNull('accuracy_score')
+                ->whereNotNull('difficulty');
+
+            $rows = DB::table(
+                    DB::table($ditados->unionAll($fala), 'union_diff')
+                        ->selectRaw("difficulty, ROUND(AVG(score)::numeric, 1) as media")
+                        ->groupBy('difficulty'),
+                    'combined'
+                )
                 ->orderBy('difficulty')
                 ->get();
 

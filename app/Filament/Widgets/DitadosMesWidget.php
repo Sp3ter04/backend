@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class DitadosMesWidget extends ChartWidget
 {
-    protected ?string $heading = 'Ditados por Mês';
+    protected ?string $heading = 'Exercícios por Mês';
 
-    protected ?string $description = 'Volume de ditados nos últimos 6 meses';
+    protected ?string $description = 'Volume de exercícios (ditados + fala) nos últimos 6 meses';
 
     protected static ?int $sort = 3;
 
@@ -25,9 +25,20 @@ class DitadosMesWidget extends ChartWidget
                      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
         try {
-            $rows = DB::table('dictation_metrics')
+            $ditados = DB::table('dictation_metrics')
                 ->selectRaw("TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes, COUNT(*) as total")
-                ->groupBy('mes')
+                ->groupBy('mes');
+
+            $fala = DB::table('speech_metrics')
+                ->selectRaw("TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes, COUNT(*) as total")
+                ->groupBy('mes');
+
+            $rows = DB::table(
+                    DB::table($ditados->unionAll($fala), 'union_all')
+                        ->selectRaw('mes, SUM(total) as total')
+                        ->groupBy('mes'),
+                    'combined'
+                )
                 ->orderBy('mes', 'desc')
                 ->limit(6)
                 ->get()
@@ -49,7 +60,7 @@ class DitadosMesWidget extends ChartWidget
             'labels'   => $labels,
             'datasets' => [
                 [
-                    'label'           => 'Ditados',
+                    'label'           => 'Exercícios',
                     'data'            => $data,
                     'backgroundColor' => '#1D9E75',
                     'borderRadius'    => 4,
