@@ -3,18 +3,12 @@
 namespace App\Models;
 
 use App\Models\SupabaseModel;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class School extends SupabaseModel
 {
-    /**
-     * The table associated with the model.
-     */
     protected $table = 'schools';
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'name',
         'address',
@@ -23,9 +17,6 @@ class School extends SupabaseModel
         'director_name'
     ];
 
-    /**
-     * The attributes that should be cast.
-     */
     protected function casts(): array
     {
         return [
@@ -33,4 +24,8 @@ class School extends SupabaseModel
         ];
     }
 
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
 }
